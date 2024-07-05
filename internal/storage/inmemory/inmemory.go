@@ -1,0 +1,52 @@
+package inmemory
+
+import (
+	"errors"
+	"math/rand"
+	"sync"
+)
+
+type MemStorage struct {
+	mutex sync.RWMutex
+	urls  map[string]string
+}
+
+func NewMemoryStorage() *MemStorage {
+	return &MemStorage{
+		urls: make(map[string]string),
+	}
+}
+
+func (s *MemStorage) SaveURL(originalURL string) (string, error) {
+	if originalURL == "" {
+		return "", errors.New("originalURL can't be blank")
+	}
+
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	shortKey := generateShortKey()
+
+	s.urls[shortKey] = originalURL
+	return shortKey, nil
+}
+
+func (s *MemStorage) GetURL(key string) (string, bool) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	originalURL, ok := s.urls[key]
+
+	return originalURL, ok
+}
+
+func generateShortKey() string {
+	charset := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	keyLength := 6
+
+	shortKey := make([]byte, keyLength)
+	for i := range shortKey {
+		shortKey[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(shortKey)
+}

@@ -1,0 +1,83 @@
+package api
+
+import (
+	"bytes"
+	"fmt"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/inmemory"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+type mockSave struct {
+	saveURL func(string) (string, error)
+}
+
+func (m *mockSave) SaveURL(originalURL string) (string, error) {
+	return m.saveURL(originalURL)
+}
+
+func TestSaveUrlHandler(t *testing.T) {
+	newAPI := New(http.NewServeMux())
+	newAPI.InitRoutes(inmemory.NewMemoryStorage())
+
+	shortKey := `qwerty`
+	expectedBody := fmt.Sprintf("http://localhost:8080/%s", shortKey)
+	originalURL := "https://practicum.yandex.ru/"
+
+	testCases := []struct {
+		name         string
+		method       string
+		reqBody      io.Reader
+		expectedCode int
+		expectedBody string
+		mock         *mockSave
+	}{
+		{
+			name:         "when happy path: correct response",
+			method:       http.MethodPost,
+			reqBody:      bytes.NewReader([]byte(originalURL)),
+			expectedCode: http.StatusCreated,
+			expectedBody: expectedBody,
+			mock:         &mockSave{saveURL: func(originalURL string) (string, error) { return shortKey, nil }},
+		},
+		{
+			name:         "when unhappy path: incorrect request method",
+			method:       http.MethodGet,
+			reqBody:      bytes.NewReader([]byte(originalURL)),
+			expectedCode: http.StatusMethodNotAllowed,
+			expectedBody: "Only POST requests allowed!\n",
+			mock:         &mockSave{saveURL: func(originalURL string) (string, error) { return shortKey, nil }},
+		},
+		{
+			name:         "when unhappy path: empty reqBody",
+			method:       http.MethodPost,
+			reqBody:      bytes.NewReader([]byte("")),
+			expectedCode: http.StatusBadRequest,
+			expectedBody: "URL parameter is missing\n",
+			mock:         &mockSave{saveURL: func(originalURL string) (string, error) { return shortKey, nil }},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := httptest.NewRequest(tc.method, "/", tc.reqBody)
+			w := httptest.NewRecorder()
+
+			h := saveURLHandler(tc.mock)
+			h(w, r)
+
+			res := w.Result()
+			// check response code
+			assert.Equal(t, tc.expectedCode, w.Code, "Код ответа не совпадает с ожидаемым")
+			// check response body
+			defer res.Body.Close()
+			resBody, err := io.ReadAll(res.Body)
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedBody, string(resBody))
+		})
+	}
+}
