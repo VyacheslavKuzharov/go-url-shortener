@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/inmemory"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -12,16 +13,8 @@ import (
 	"testing"
 )
 
-type mockSave struct {
-	saveURL func(string) (string, error)
-}
-
-func (m *mockSave) SaveURL(originalURL string) (string, error) {
-	return m.saveURL(originalURL)
-}
-
 func TestSaveUrlHandler(t *testing.T) {
-	newAPI := New(http.NewServeMux())
+	newAPI := New(chi.NewRouter())
 	newAPI.InitRoutes(inmemory.NewMemoryStorage())
 
 	shortKey := `qwerty`
@@ -34,7 +27,7 @@ func TestSaveUrlHandler(t *testing.T) {
 		reqBody      io.Reader
 		expectedCode int
 		expectedBody string
-		mock         *mockSave
+		mock         *MockStorage
 	}{
 		{
 			name:         "when happy path: correct response",
@@ -42,7 +35,7 @@ func TestSaveUrlHandler(t *testing.T) {
 			reqBody:      bytes.NewReader([]byte(originalURL)),
 			expectedCode: http.StatusCreated,
 			expectedBody: expectedBody,
-			mock:         &mockSave{saveURL: func(originalURL string) (string, error) { return shortKey, nil }},
+			mock:         &MockStorage{saveURL: func(originalURL string) (string, error) { return shortKey, nil }},
 		},
 		{
 			name:         "when unhappy path: incorrect request method",
@@ -50,7 +43,7 @@ func TestSaveUrlHandler(t *testing.T) {
 			reqBody:      bytes.NewReader([]byte(originalURL)),
 			expectedCode: http.StatusMethodNotAllowed,
 			expectedBody: "Only POST requests allowed!\n",
-			mock:         &mockSave{saveURL: func(originalURL string) (string, error) { return shortKey, nil }},
+			mock:         &MockStorage{saveURL: func(originalURL string) (string, error) { return shortKey, nil }},
 		},
 		{
 			name:         "when unhappy path: empty reqBody",
@@ -58,7 +51,7 @@ func TestSaveUrlHandler(t *testing.T) {
 			reqBody:      bytes.NewReader([]byte("")),
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "URL parameter is missing\n",
-			mock:         &mockSave{saveURL: func(originalURL string) (string, error) { return shortKey, nil }},
+			mock:         &MockStorage{saveURL: func(originalURL string) (string, error) { return shortKey, nil }},
 		},
 	}
 	for _, tc := range testCases {

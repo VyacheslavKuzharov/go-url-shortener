@@ -2,22 +2,15 @@ package api
 
 import (
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/inmemory"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-type mockGet struct {
-	getURL func(string) (string, bool)
-}
-
-func (m *mockGet) GetURL(key string) (string, bool) {
-	return m.getURL(key)
-}
-
 func TestRedirectHandler(t *testing.T) {
-	newAPI := New(http.NewServeMux())
+	newAPI := New(chi.NewRouter())
 	newAPI.InitRoutes(inmemory.NewMemoryStorage())
 
 	originalURL := "https://practicum.yandex.ru/"
@@ -28,7 +21,7 @@ func TestRedirectHandler(t *testing.T) {
 		request        string
 		expectedCode   int
 		expectedHeader string
-		mock           *mockGet
+		mock           *MockStorage
 	}{
 		{
 			name:           "when happy path: correct response",
@@ -36,7 +29,7 @@ func TestRedirectHandler(t *testing.T) {
 			request:        "/qwerty",
 			expectedCode:   http.StatusTemporaryRedirect,
 			expectedHeader: originalURL,
-			mock:           &mockGet{getURL: func(key string) (string, bool) { return originalURL, true }},
+			mock:           &MockStorage{getURL: func(key string) (string, bool) { return originalURL, true }},
 		},
 		{
 			name:           "when unhappy path: incorrect request method",
@@ -44,7 +37,7 @@ func TestRedirectHandler(t *testing.T) {
 			request:        "/qwerty",
 			expectedCode:   http.StatusMethodNotAllowed,
 			expectedHeader: "",
-			mock:           &mockGet{getURL: func(key string) (string, bool) { return originalURL, true }},
+			mock:           &MockStorage{getURL: func(key string) (string, bool) { return originalURL, true }},
 		},
 		{
 			name:           "when unhappy path: short key not found",
@@ -52,7 +45,7 @@ func TestRedirectHandler(t *testing.T) {
 			request:        "/qwerty",
 			expectedCode:   http.StatusBadRequest,
 			expectedHeader: "",
-			mock:           &mockGet{getURL: func(key string) (string, bool) { return "", false }},
+			mock:           &MockStorage{getURL: func(key string) (string, bool) { return "", false }},
 		},
 	}
 	for _, tc := range testCases {

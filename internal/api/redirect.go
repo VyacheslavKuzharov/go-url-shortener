@@ -1,6 +1,9 @@
 package api
 
-import "net/http"
+import (
+	"github.com/go-chi/chi/v5"
+	"net/http"
+)
 
 type URLGetter interface {
 	GetURL(key string) (string, bool)
@@ -13,7 +16,7 @@ func redirectHandler(storage URLGetter) http.HandlerFunc {
 			return
 		}
 
-		shortKey := r.PathValue("shortKey")
+		shortKey := chi.URLParam(r, "shortKey")
 
 		originalURL, ok := storage.GetURL(shortKey)
 		if !ok {

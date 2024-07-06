@@ -1,22 +1,29 @@
 package api
 
 import (
-	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/inmemory"
-	"net/http"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 type API struct {
-	router *http.ServeMux
+	router *chi.Mux
 }
 
-func New(router *http.ServeMux) *API {
+func New(router *chi.Mux) *API {
 	api := API{
 		router: router,
 	}
 	return &api
 }
 
-func (api *API) InitRoutes(storage *inmemory.MemStorage) {
-	api.router.HandleFunc(`/`, saveURLHandler(storage))
-	api.router.HandleFunc(`/{shortKey}`, redirectHandler(storage))
+func (api *API) InitRoutes(storage storage.Storager) chi.Router {
+	api.router.Group(func(r chi.Router) {
+		r.Use(middleware.Logger)
+
+		r.Post(`/`, saveURLHandler(storage))
+		r.Get(`/{shortKey}`, redirectHandler(storage))
+	})
+
+	return api.router
 }
