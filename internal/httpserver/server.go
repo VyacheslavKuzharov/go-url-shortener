@@ -1,7 +1,9 @@
 package httpserver
 
 import (
+	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"time"
 )
@@ -9,7 +11,8 @@ import (
 const (
 	defaultReadTimeout  = 40 * time.Second
 	defaultWriteTimeout = 40 * time.Second
-	defaultAddr         = ":8080"
+	DefaultHost         = "localhost"
+	DefaultPort         = "8080"
 )
 
 type Server struct {
@@ -21,7 +24,6 @@ func New(handler http.Handler) *Server {
 		Handler:      handler,
 		ReadTimeout:  defaultReadTimeout,
 		WriteTimeout: defaultWriteTimeout,
-		Addr:         defaultAddr,
 	}
 
 	s := &Server{
@@ -31,7 +33,10 @@ func New(handler http.Handler) *Server {
 	return s
 }
 
-func (s *Server) Start() {
+func (s *Server) Start(host string, port string) {
+	s.server.Addr = net.JoinHostPort(host, port)
+	fmt.Println("Starting server on:", s.server.Addr)
+
 	err := s.server.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)

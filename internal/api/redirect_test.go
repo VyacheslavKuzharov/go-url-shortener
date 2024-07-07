@@ -1,8 +1,6 @@
 package api
 
 import (
-	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/inmemory"
-	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -10,9 +8,6 @@ import (
 )
 
 func TestRedirectHandler(t *testing.T) {
-	newAPI := New(chi.NewRouter())
-	newAPI.InitRoutes(inmemory.NewMemoryStorage())
-
 	originalURL := "https://practicum.yandex.ru/"
 
 	testCases := []struct {
