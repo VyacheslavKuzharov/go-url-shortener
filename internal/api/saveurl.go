@@ -36,7 +36,6 @@ func saveURLHandler(storage URLSaver, cfg *config.Config) http.HandlerFunc {
 		}
 
 		shortenedURL := FullShortenedURL(shortKey, cfg)
-		//shortenedURL := fmt.Sprintf("http://localhost:8080/%s", shortKey)
 
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
