@@ -4,35 +4,39 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
-	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 )
 
 var api *API
 
-func TestMain(m *testing.M) {
+func initRouter(t *testing.T) (chi.Router, *MockStorage) {
+	t.Helper()
+
 	router := chi.NewRouter()
 	cfg, _ := config.New()
-	api = New(router, cfg)
-	api.InitRoutes(storage.New())
-	os.Exit(m.Run())
+	storage := NewMockStorage()
+
+	api = New(router, cfg, storage)
+
+	return api.router, storage
 }
 
 func TestRouter(t *testing.T) {
+	router, repo := initRouter(t)
+
 	var testCases = []struct {
 		url            string
 		reqMethod      string
 		reqBody        io.Reader
 		expectedBody   string
 		expectedStatus int
-		mock           *MockStorage
+		mockRepo       func()
 		expectedHeader string
 	}{
 		{
@@ -41,7 +45,9 @@ func TestRouter(t *testing.T) {
 			reqBody:        bytes.NewReader([]byte("https://practicum.yandex.ru/")),
 			expectedBody:   fmt.Sprintf("http://localhost:8080/%s", "qwerty"),
 			expectedStatus: http.StatusCreated,
-			mock:           &MockStorage{saveURL: func(originalURL string) (string, error) { return "qwerty", nil }},
+			mockRepo: func() {
+				repo.saveURL = func(originalURL string) (string, error) { return "qwerty", nil }
+			},
 		},
 		{
 			url:            "/",
@@ -49,14 +55,16 @@ func TestRouter(t *testing.T) {
 			reqBody:        bytes.NewReader([]byte("https://practicum.yandex.ru/")),
 			expectedBody:   "",
 			expectedStatus: http.StatusMethodNotAllowed,
-			mock:           &MockStorage{},
+			mockRepo:       func() {},
 		},
 		{
 			url:            "/TlHZMa",
 			reqMethod:      "GET",
 			expectedBody:   "",
 			expectedStatus: http.StatusTemporaryRedirect,
-			mock:           &MockStorage{getURL: func(key string) (string, bool) { return "google.com", true }},
+			mockRepo: func() {
+				repo.getURL = func(key string) (string, bool) { return "google.com", true }
+			},
 			expectedHeader: "google.com",
 		},
 		{
@@ -64,12 +72,15 @@ func TestRouter(t *testing.T) {
 			reqMethod:      "GET",
 			expectedBody:   "shortKey not found\n",
 			expectedStatus: http.StatusBadRequest,
-			mock:           &MockStorage{getURL: func(key string) (string, bool) { return "", false }},
+			mockRepo: func() {
+				repo.getURL = func(key string) (string, bool) { return "", false }
+			},
 			expectedHeader: "",
 		},
 	}
 	for _, tc := range testCases {
-		ts := httptest.NewServer(api.InitRoutes(tc.mock))
+		tc.mockRepo()
+		ts := httptest.NewServer(router)
 
 		resp, resBody := testRequest(t, ts, tc.reqMethod, tc.url, tc.reqBody)
 

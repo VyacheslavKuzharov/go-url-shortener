@@ -1,7 +1,6 @@
 package httpserver
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -35,7 +34,7 @@ func New(handler http.Handler) *Server {
 
 func (s *Server) Start(host string, port string) {
 	s.server.Addr = net.JoinHostPort(host, port)
-	fmt.Println("Starting server on:", s.server.Addr)
+	log.Println("Starting server on:", s.server.Addr)
 
 	err := s.server.ListenAndServe()
 	if err != nil {

@@ -1,5 +1,9 @@
 package api
 
+func NewMockStorage() *MockStorage {
+	return &MockStorage{}
+}
+
 type MockStorage struct {
 	saveURL func(string) (string, error)
 	getURL  func(string) (string, bool)

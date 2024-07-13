@@ -5,11 +5,11 @@ import (
 	"net/http"
 )
 
-type URLGetter interface {
+type urlGetter interface {
 	GetURL(key string) (string, bool)
 }
 
-func redirectHandler(storage URLGetter) http.HandlerFunc {
+func redirectHandler(storage urlGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Only GET requests allowed!", http.StatusMethodNotAllowed)

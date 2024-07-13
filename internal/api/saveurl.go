@@ -4,13 +4,14 @@ import (
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
 	"io"
 	"net/http"
+	"net/url"
 )
 
-type URLSaver interface {
+type urlSaver interface {
 	SaveURL(originalURL string) (string, error)
 }
 
-func saveURLHandler(storage URLSaver, cfg *config.Config) http.HandlerFunc {
+func saveURLHandler(storage urlSaver, cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Only POST requests allowed!", http.StatusMethodNotAllowed)
@@ -29,6 +30,11 @@ func saveURLHandler(storage URLSaver, cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		if !isURLValid(originalURL) {
+			http.Error(w, "provided url is invalid", http.StatusBadRequest)
+			return
+		}
+
 		shortKey, err := storage.SaveURL(originalURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -36,7 +42,6 @@ func saveURLHandler(storage URLSaver, cfg *config.Config) http.HandlerFunc {
 		}
 
 		shortenedURL := FullShortenedURL(shortKey, cfg)
-		//shortenedURL := fmt.Sprintf("http://localhost:8080/%s", shortKey)
 
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
@@ -44,4 +49,10 @@ func saveURLHandler(storage URLSaver, cfg *config.Config) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 	}
+}
+
+func isURLValid(originalURL string) bool {
+	u, err := url.Parse(originalURL)
+
+	return err == nil && u.Scheme != "" && u.Host != ""
 }
