@@ -10,27 +10,27 @@ import (
 )
 
 type API struct {
-	router *chi.Mux
-	cfg    *config.Config
+	router  *chi.Mux
+	cfg     *config.Config
+	storage storage.Storager
 }
 
-func New(router *chi.Mux, cfg *config.Config) *API {
-	api := API{
-		router: router,
-		cfg:    cfg,
+func New(router *chi.Mux, cfg *config.Config, storage storage.Storager) *API {
+	api := &API{
+		router:  router,
+		cfg:     cfg,
+		storage: storage,
 	}
-	return &api
+	api.start()
+
+	return api
 }
 
-func (api *API) InitRoutes(storage storage.Storager) chi.Router {
-	api.router.Group(func(r chi.Router) {
-		r.Use(middleware.Logger)
+func (api *API) start() {
+	api.router.Use(middleware.Logger)
 
-		r.Post(`/`, saveURLHandler(storage, api.cfg))
-		r.Get(`/{shortKey}`, redirectHandler(storage))
-	})
-
-	return api.router
+	api.router.Post(`/`, saveURLHandler(api.storage, api.cfg))
+	api.router.Get(`/{shortKey}`, redirectHandler(api.storage))
 }
 
 func FullShortenedURL(shortKey string, cfg *config.Config) string {

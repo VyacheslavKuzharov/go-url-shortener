@@ -4,13 +4,14 @@ import (
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
 	"io"
 	"net/http"
+	"time"
 )
 
-type URLSaver interface {
+type urlSaver interface {
 	SaveURL(originalURL string) (string, error)
 }
 
-func saveURLHandler(storage URLSaver, cfg *config.Config) http.HandlerFunc {
+func saveURLHandler(storage urlSaver, cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Only POST requests allowed!", http.StatusMethodNotAllowed)
@@ -29,6 +30,16 @@ func saveURLHandler(storage URLSaver, cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		ok, err := isURLValid(originalURL)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if !ok {
+			http.Error(w, "provided url is invalid", http.StatusBadRequest)
+			return
+		}
+
 		shortKey, err := storage.SaveURL(originalURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -43,4 +54,17 @@ func saveURLHandler(storage URLSaver, cfg *config.Config) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 	}
+}
+
+func isURLValid(originalURL string) (bool, error) {
+	client := http.Client{
+		Timeout: time.Second * 1,
+	}
+	resp, err := client.Get(originalURL)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	return resp.StatusCode == http.StatusOK, nil
 }
