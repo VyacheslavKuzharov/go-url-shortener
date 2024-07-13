@@ -1,7 +1,7 @@
 package api
 
 import (
-	"fmt"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
 	"io"
 	"net/http"
 )
@@ -10,7 +10,7 @@ type URLSaver interface {
 	SaveURL(originalURL string) (string, error)
 }
 
-func saveURLHandler(storage URLSaver) http.HandlerFunc {
+func saveURLHandler(storage URLSaver, cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Only POST requests allowed!", http.StatusMethodNotAllowed)
@@ -35,8 +35,8 @@ func saveURLHandler(storage URLSaver) http.HandlerFunc {
 			return
 		}
 
-		// Construct the full shortened URL
-		shortenedURL := fmt.Sprintf("http://localhost:8080/%s", shortKey)
+		shortenedURL := FullShortenedURL(shortKey, cfg)
+		//shortenedURL := fmt.Sprintf("http://localhost:8080/%s", shortKey)
 
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)

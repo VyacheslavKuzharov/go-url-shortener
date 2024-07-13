@@ -3,8 +3,6 @@ package api
 import (
 	"bytes"
 	"fmt"
-	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/inmemory"
-	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -14,9 +12,6 @@ import (
 )
 
 func TestSaveUrlHandler(t *testing.T) {
-	newAPI := New(chi.NewRouter())
-	newAPI.InitRoutes(inmemory.NewMemoryStorage())
-
 	shortKey := `qwerty`
 	expectedBody := fmt.Sprintf("http://localhost:8080/%s", shortKey)
 	originalURL := "https://practicum.yandex.ru/"
@@ -59,7 +54,7 @@ func TestSaveUrlHandler(t *testing.T) {
 			r := httptest.NewRequest(tc.method, "/", tc.reqBody)
 			w := httptest.NewRecorder()
 
-			h := saveURLHandler(tc.mock)
+			h := saveURLHandler(tc.mock, api.cfg)
 			h(w, r)
 
 			res := w.Result()
