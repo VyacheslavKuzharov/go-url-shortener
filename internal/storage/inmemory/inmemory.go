@@ -11,10 +11,10 @@ type MemStorage struct {
 	urls  map[string]string
 }
 
-func NewMemoryStorage() *MemStorage {
+func NewMemoryStorage() (*MemStorage, error) {
 	return &MemStorage{
 		urls: make(map[string]string),
-	}
+	}, nil
 }
 
 func (s *MemStorage) SaveURL(originalURL string) (string, error) {
@@ -38,4 +38,8 @@ func (s *MemStorage) GetURL(key string) (string, bool) {
 	originalURL, ok := s.urls[key]
 
 	return originalURL, ok
+}
+
+func (s *MemStorage) Close() error {
+	return nil
 }

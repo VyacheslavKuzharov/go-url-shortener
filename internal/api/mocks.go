@@ -16,3 +16,7 @@ func (m *MockStorage) SaveURL(originalURL string) (string, error) {
 func (m *MockStorage) GetURL(key string) (string, bool) {
 	return m.getURL(key)
 }
+
+func (m *MockStorage) Close() error {
+	return nil
+}

@@ -16,6 +16,9 @@
 cmd/shortener/main
 cmd/shortener/shortener
 
+# Default file storage
+internal/storage/infile/urls.txt
+
 # Dependency directories (remove the comment below to include it)
 vendor/
 
