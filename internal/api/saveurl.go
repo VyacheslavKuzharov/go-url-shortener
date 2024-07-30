@@ -2,9 +2,9 @@ package api
 
 import (
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/httpapi"
 	"io"
 	"net/http"
-	"net/url"
 )
 
 type urlSaver interface {
@@ -30,7 +30,7 @@ func saveURLHandler(storage urlSaver, cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		if !isURLValid(originalURL) {
+		if !httpapi.IsURLValid(originalURL) {
 			http.Error(w, "provided url is invalid", http.StatusBadRequest)
 			return
 		}
@@ -41,7 +41,7 @@ func saveURLHandler(storage urlSaver, cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		shortenedURL := FullShortenedURL(shortKey, cfg)
+		shortenedURL := httpapi.FullShortenedURL(shortKey, cfg)
 
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
@@ -49,10 +49,4 @@ func saveURLHandler(storage urlSaver, cfg *config.Config) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 	}
-}
-
-func isURLValid(originalURL string) bool {
-	u, err := url.Parse(originalURL)
-
-	return err == nil && u.Scheme != "" && u.Host != ""
 }

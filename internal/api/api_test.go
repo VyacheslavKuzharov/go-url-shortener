@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -72,12 +73,54 @@ func TestRouter(t *testing.T) {
 		{
 			url:            "/qwerty",
 			reqMethod:      "GET",
-			expectedBody:   "shortKey not found\n",
+			expectedBody:   "shortKey not found",
 			expectedStatus: http.StatusBadRequest,
 			mockRepo: func() {
 				repo.getURL = func(key string) (string, bool) { return "", false }
 			},
 			expectedHeader: "",
+		},
+		{
+			url:            "/api/shorten",
+			reqMethod:      "POST",
+			reqBody:        bytes.NewReader([]byte("{\"url\": \"https://practicum.yandex.ru\"}")),
+			expectedBody:   `{"result":"http://localhost:8080/fG4oX4"}`,
+			expectedStatus: http.StatusCreated,
+			mockRepo: func() {
+				repo.saveURL = func(originalURL string) (string, error) { return "fG4oX4", nil }
+			},
+		},
+		{
+			url:            "/api/shorten",
+			reqMethod:      "GET",
+			reqBody:        bytes.NewReader([]byte("{\"url\": \"https://practicum.yandex.ru\"}")),
+			expectedBody:   "",
+			expectedStatus: http.StatusMethodNotAllowed,
+			mockRepo:       func() {},
+		},
+		{
+			url:            "/api/shorten",
+			reqMethod:      "POST",
+			reqBody:        bytes.NewReader([]byte("{\"url\": \"https://\"}")),
+			expectedBody:   `{"error":"provided url is invalid"}`,
+			expectedStatus: http.StatusBadRequest,
+			mockRepo:       func() {},
+		},
+		{
+			url:            "/api/shorten",
+			reqMethod:      "POST",
+			reqBody:        bytes.NewReader([]byte("{}")),
+			expectedBody:   `{"error":"provided url is invalid"}`,
+			expectedStatus: http.StatusBadRequest,
+			mockRepo:       func() {},
+		},
+		{
+			url:            "/api/shorten",
+			reqMethod:      "POST",
+			reqBody:        bytes.NewReader([]byte("")),
+			expectedBody:   `{"error":"request is empty"}`,
+			expectedStatus: http.StatusBadRequest,
+			mockRepo:       func() {},
 		},
 	}
 	for _, tc := range testCases {
@@ -112,5 +155,5 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 	respBody, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
-	return resp, string(respBody)
+	return resp, strings.TrimSuffix(string(respBody), "\n")
 }

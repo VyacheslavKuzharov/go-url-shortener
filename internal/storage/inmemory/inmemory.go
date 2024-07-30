@@ -2,7 +2,7 @@ package inmemory
 
 import (
 	"errors"
-	"math/rand"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/random"
 	"sync"
 )
 
@@ -25,7 +25,7 @@ func (s *MemStorage) SaveURL(originalURL string) (string, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	shortKey := generateShortKey()
+	shortKey := random.GenShortKey()
 
 	s.urls[shortKey] = originalURL
 	return shortKey, nil
@@ -38,15 +38,4 @@ func (s *MemStorage) GetURL(key string) (string, bool) {
 	originalURL, ok := s.urls[key]
 
 	return originalURL, ok
-}
-
-func generateShortKey() string {
-	charset := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	keyLength := 6
-
-	shortKey := make([]byte, keyLength)
-	for i := range shortKey {
-		shortKey[i] = charset[rand.Intn(len(charset))]
-	}
-	return string(shortKey)
 }
