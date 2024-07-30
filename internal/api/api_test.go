@@ -2,7 +2,9 @@ package api
 
 import (
 	"bytes"
+	"compress/gzip"
 	"fmt"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/api/middlewares"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/logger"
 	"github.com/go-chi/chi/v5"
@@ -28,6 +30,26 @@ func initRouter(t *testing.T) (chi.Router, *MockStorage) {
 	api = New(router, cfg, storage, l)
 
 	return api.router, storage
+}
+
+func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) (*http.Response, string) {
+	req, err := http.NewRequest(method, ts.URL+path, body)
+	require.NoError(t, err)
+
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	return resp, strings.TrimSuffix(string(respBody), "\n")
 }
 
 func TestRouter(t *testing.T) {
@@ -138,22 +160,67 @@ func TestRouter(t *testing.T) {
 	}
 }
 
-func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) (*http.Response, string) {
-	req, err := http.NewRequest(method, ts.URL+path, body)
-	require.NoError(t, err)
+func TestGzipCompression(t *testing.T) {
+	cfgs := &config.Config{HTTP: config.HTTPCfg{Host: "localhost", Port: "8080"}}
+	mock := &MockStorage{saveURL: func(originalURL string) (string, error) { return "NUf6O3", nil }}
 
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
+	handler := middlewares.Compress(shortenHandler(mock, cfgs))
 
-	resp, err := client.Do(req)
-	require.NoError(t, err)
-	defer resp.Body.Close()
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
+	requestBody := `{
+		"url": "https://practicum.yandex.ru"
+	}`
 
-	return resp, strings.TrimSuffix(string(respBody), "\n")
+	successBody := `{
+			"result": "http://localhost:8080/NUf6O3"
+	}`
+
+	t.Run("sends_gzip", func(t *testing.T) {
+		buf := bytes.NewBuffer(nil)
+		zb := gzip.NewWriter(buf)
+		_, err := zb.Write([]byte(requestBody))
+		require.NoError(t, err)
+		err = zb.Close()
+		require.NoError(t, err)
+
+		r := httptest.NewRequest("POST", srv.URL, buf)
+		r.RequestURI = ""
+		r.Header.Set("Content-Type", "application/json")
+		r.Header.Set("Content-Encoding", "gzip")
+		r.Header.Set("Accept-Encoding", "")
+
+		resp, err := http.DefaultClient.Do(r)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		defer resp.Body.Close()
+
+		b, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.JSONEq(t, successBody, string(b))
+	})
+
+	t.Run("accepts_gzip", func(t *testing.T) {
+		buf := bytes.NewBufferString(requestBody)
+		r := httptest.NewRequest("POST", srv.URL, buf)
+		r.RequestURI = ""
+		r.Header.Set("Content-Type", "text/html")
+		r.Header.Set("Accept-Encoding", "gzip")
+
+		resp, err := http.DefaultClient.Do(r)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		defer resp.Body.Close()
+
+		zr, err := gzip.NewReader(resp.Body)
+		require.NoError(t, err)
+
+		b, err := io.ReadAll(zr)
+		require.NoError(t, err)
+
+		require.JSONEq(t, successBody, string(b))
+	})
 }

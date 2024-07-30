@@ -29,6 +29,7 @@ func New(r *chi.Mux, cfg *config.Config, s storage.Storager, l *logger.Logger) *
 
 func (api *API) start() {
 	api.router.Use(middlewares.Logger(api.logger))
+	api.router.Use(middlewares.Compress)
 
 	api.router.Post(`/`, saveURLHandler(api.storage, api.cfg))
 	api.router.Get(`/{shortKey}`, redirectHandler(api.storage))
