@@ -11,10 +11,10 @@ type MemStorage struct {
 	urls  map[string]string
 }
 
-func NewMemoryStorage() *MemStorage {
+func NewMemoryStorage() (*MemStorage, error) {
 	return &MemStorage{
 		urls: make(map[string]string),
-	}
+	}, nil
 }
 
 func (s *MemStorage) SaveURL(originalURL string) (string, error) {
@@ -31,11 +31,18 @@ func (s *MemStorage) SaveURL(originalURL string) (string, error) {
 	return shortKey, nil
 }
 
-func (s *MemStorage) GetURL(key string) (string, bool) {
+func (s *MemStorage) GetURL(key string) (string, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
 	originalURL, ok := s.urls[key]
+	if !ok {
+		return "", errors.New("shortKey not found")
+	}
 
-	return originalURL, ok
+	return originalURL, nil
+}
+
+func (s *MemStorage) Close() error {
+	return nil
 }

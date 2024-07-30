@@ -7,6 +7,7 @@ import (
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/logger"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage"
 	"github.com/go-chi/chi/v5"
+	"log"
 	"net"
 )
 
@@ -15,8 +16,12 @@ func Run(cfg *config.Config) {
 	l.Info("Starting go-url-shortener application...")
 
 	// Storage
-	s := storage.New()
+	s, err := storage.New(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
 	l.Info("Storage initialized.")
+	defer s.Close()
 
 	// Http
 	router := chi.NewRouter()

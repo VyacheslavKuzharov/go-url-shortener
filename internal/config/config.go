@@ -2,64 +2,44 @@ package config
 
 import (
 	"flag"
-	"github.com/VyacheslavKuzharov/go-url-shortener/internal/httpserver"
-	"os"
-	"strings"
+	baseURLcfg "github.com/VyacheslavKuzharov/go-url-shortener/internal/config/base_url"
+	httpcfg "github.com/VyacheslavKuzharov/go-url-shortener/internal/config/http"
+	logscfg "github.com/VyacheslavKuzharov/go-url-shortener/internal/config/logs"
+	storagecfg "github.com/VyacheslavKuzharov/go-url-shortener/internal/config/storage"
 )
 
 type Config struct {
-	HTTP    HTTPCfg
-	BaseURL BaseURLCfg
-	Log     LogCfg
-}
-
-type HTTPCfg struct {
-	Host string
-	Port string
-}
-
-type BaseURLCfg struct {
-	Addr string
-}
-
-type LogCfg struct {
-	Level string
+	HTTP    httpcfg.HTTPCfg
+	BaseURL baseURLcfg.BaseURLCfg
+	Log     logscfg.LogCfg
+	Storage storagecfg.StorageCfg
 }
 
 func New() (*Config, error) {
 	cfg := &Config{}
-	httpcfg, baseURL := parseHTTPServerFlags()
+	http, baseURL, filePath := parseHTTPServerFlags()
 
-	if os.Getenv("SERVER_ADDRESS") != "" {
-		hp := strings.Split(os.Getenv("SERVER_ADDRESS"), ":")
-
-		cfg.HTTP.Host = hp[0]
-		cfg.HTTP.Port = hp[1]
-	} else if httpcfg.Host != "" && httpcfg.Port != "" {
-		cfg.HTTP = *httpcfg
-	} else {
-		cfg.HTTP.Host = httpserver.DefaultHost
-		cfg.HTTP.Port = httpserver.DefaultPort
+	hcf, err := httpcfg.NewHTTPCfg(http)
+	if err != nil {
+		return cfg, err
 	}
-
-	if os.Getenv("BASE_URL") != "" {
-		cfg.BaseURL.Addr = os.Getenv("BASE_URL")
-	} else if baseURL.Addr != "" {
-		cfg.BaseURL = *baseURL
-	}
-
-	cfg.Log.Level = "info"
+	cfg.HTTP = *hcf
+	cfg.BaseURL = *baseURLcfg.NewBaseURLCfg(baseURL)
+	cfg.Log = *logscfg.NewLogsCfg()
+	cfg.Storage = *storagecfg.NewStorageCfg(filePath)
 
 	return cfg, nil
 }
 
-func parseHTTPServerFlags() (*HTTPCfg, *BaseURLCfg) {
-	addr := new(HTTPCfg)
-	url := new(BaseURLCfg)
+func parseHTTPServerFlags() (*httpcfg.HTTPCfg, *baseURLcfg.BaseURLCfg, *storagecfg.FileStorage) {
+	addr := new(httpcfg.HTTPCfg)
+	url := new(baseURLcfg.BaseURLCfg)
+	filePath := new(storagecfg.FileStorage)
 
 	flag.Var(addr, "a", "Net address host:port")
 	flag.Var(url, "b", "base address of the resulting shortened URL http://localhost:3000")
+	flag.Var(filePath, "f", "path to file storage")
 	flag.Parse()
 
-	return addr, url
+	return addr, url, filePath
 }

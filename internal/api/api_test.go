@@ -3,9 +3,11 @@ package api
 import (
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/api/middlewares"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
+	httpcfg "github.com/VyacheslavKuzharov/go-url-shortener/internal/config/http"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -88,7 +90,7 @@ func TestRouter(t *testing.T) {
 			expectedBody:   "",
 			expectedStatus: http.StatusTemporaryRedirect,
 			mockRepo: func() {
-				repo.getURL = func(key string) (string, bool) { return "google.com", true }
+				repo.getURL = func(key string) (string, error) { return "google.com", nil }
 			},
 			expectedHeader: "google.com",
 		},
@@ -98,7 +100,7 @@ func TestRouter(t *testing.T) {
 			expectedBody:   "shortKey not found",
 			expectedStatus: http.StatusBadRequest,
 			mockRepo: func() {
-				repo.getURL = func(key string) (string, bool) { return "", false }
+				repo.getURL = func(key string) (string, error) { return "", errors.New("shortKey not found") }
 			},
 			expectedHeader: "",
 		},
@@ -161,7 +163,7 @@ func TestRouter(t *testing.T) {
 }
 
 func TestGzipCompression(t *testing.T) {
-	cfgs := &config.Config{HTTP: config.HTTPCfg{Host: "localhost", Port: "8080"}}
+	cfgs := &config.Config{HTTP: httpcfg.HTTPCfg{Host: "localhost", Port: "8080"}}
 	mock := &MockStorage{saveURL: func(originalURL string) (string, error) { return "NUf6O3", nil }}
 
 	handler := middlewares.Compress(shortenHandler(mock, cfgs))

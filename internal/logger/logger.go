@@ -1,11 +1,11 @@
 package logger
 
 import (
+	logscfg "github.com/VyacheslavKuzharov/go-url-shortener/internal/config/logs"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -13,20 +13,18 @@ type Logger struct {
 	logger *zerolog.Logger
 }
 
-func New(level string) *Logger {
+func New(level logscfg.LogLevel) *Logger {
 	var l zerolog.Level
 
-	switch strings.ToLower(level) {
-	case "error":
+	switch level {
+	case logscfg.ErrorLevel:
 		l = zerolog.ErrorLevel
-	case "warn":
+	case logscfg.WarnLevel:
 		l = zerolog.WarnLevel
-	case "info":
+	case logscfg.InfoLevel:
 		l = zerolog.InfoLevel
-	case "debug":
-		l = zerolog.DebugLevel
 	default:
-		l = zerolog.InfoLevel
+		l = zerolog.DebugLevel
 	}
 
 	zerolog.SetGlobalLevel(l)

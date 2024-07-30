@@ -6,7 +6,7 @@ import (
 )
 
 type urlGetter interface {
-	GetURL(key string) (string, bool)
+	GetURL(key string) (string, error)
 }
 
 func redirectHandler(storage urlGetter) http.HandlerFunc {
@@ -18,9 +18,9 @@ func redirectHandler(storage urlGetter) http.HandlerFunc {
 
 		shortKey := chi.URLParam(r, "shortKey")
 
-		originalURL, ok := storage.GetURL(shortKey)
-		if !ok {
-			http.Error(w, "shortKey not found", http.StatusBadRequest)
+		originalURL, err := storage.GetURL(shortKey)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 

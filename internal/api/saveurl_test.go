@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
+	httpcfg "github.com/VyacheslavKuzharov/go-url-shortener/internal/config/http"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -16,7 +17,7 @@ func TestSaveUrlHandler(t *testing.T) {
 	shortKey := `qwerty`
 	expectedBody := fmt.Sprintf("http://localhost:8080/%s", shortKey)
 	originalURL := "https://practicum.yandex.ru/"
-	cfgs := &config.Config{HTTP: config.HTTPCfg{Host: "localhost", Port: "8080"}}
+	cfgs := &config.Config{HTTP: httpcfg.HTTPCfg{Host: "localhost", Port: "8080"}}
 
 	testCases := []struct {
 		name         string

@@ -21,9 +21,7 @@ func OK(w http.ResponseWriter, code int, payload any) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	if _, err := w.Write(buf.Bytes()); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
+	w.Write(buf.Bytes()) //nolint:errcheck
 }
 
 func Err(w http.ResponseWriter, error string, code int) {
@@ -40,7 +38,5 @@ func Err(w http.ResponseWriter, error string, code int) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	if _, err := w.Write(buf.Bytes()); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
+	w.Write(buf.Bytes()) //nolint:errcheck
 }

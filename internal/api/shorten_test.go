@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
+	httpcfg "github.com/VyacheslavKuzharov/go-url-shortener/internal/config/http"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -16,7 +17,7 @@ import (
 func TestShortenHandler(t *testing.T) {
 	shortKey := `shortKey`
 	expectedBody := fmt.Sprintf(`{"result":"http://localhost:8080/%s"}`, shortKey)
-	cfgs := &config.Config{HTTP: config.HTTPCfg{Host: "localhost", Port: "8080"}}
+	cfgs := &config.Config{HTTP: httpcfg.HTTPCfg{Host: "localhost", Port: "8080"}}
 
 	testCases := []struct {
 		name         string
