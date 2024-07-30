@@ -10,7 +10,7 @@ import (
 
 type Storager interface {
 	SaveURL(originalURL string) (string, error)
-	GetURL(key string) (string, bool)
+	GetURL(key string) (string, error)
 	Close() error
 }
 

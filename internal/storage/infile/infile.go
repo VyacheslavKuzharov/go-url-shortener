@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/entity"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/random"
-	"log"
 	"os"
 	"sync"
 )
@@ -50,13 +49,13 @@ func (s *FileStorage) SaveURL(originalURL string) (string, error) {
 	return su.ShortKey, nil
 }
 
-func (s *FileStorage) GetURL(key string) (string, bool) {
+func (s *FileStorage) GetURL(key string) (string, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
 	file, err := os.Open(s.file.Name())
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	defer file.Close()
 
@@ -66,15 +65,15 @@ func (s *FileStorage) GetURL(key string) (string, bool) {
 	for decoder.More() {
 		err = decoder.Decode(&su)
 		if err != nil {
-			log.Fatal(err)
+			return "", err
 		}
 
 		if su.ShortKey == key {
-			return su.OriginalURL, true
+			return su.OriginalURL, nil
 		}
 	}
 
-	return "", false
+	return "", errors.New("shortKey not found")
 }
 
 func (s *FileStorage) Close() error {

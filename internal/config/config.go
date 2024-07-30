@@ -19,7 +19,11 @@ func New() (*Config, error) {
 	cfg := &Config{}
 	http, baseURL, filePath := parseHTTPServerFlags()
 
-	cfg.HTTP = *httpcfg.NewHTTPCfg(http)
+	hcf, err := httpcfg.NewHTTPCfg(http)
+	if err != nil {
+		return cfg, err
+	}
+	cfg.HTTP = *hcf
 	cfg.BaseURL = *baseURLcfg.NewBaseURLCfg(baseURL)
 	cfg.Log = *logscfg.NewLogsCfg()
 	cfg.Storage = *storagecfg.NewStorageCfg(filePath)

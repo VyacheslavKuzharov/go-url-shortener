@@ -12,9 +12,9 @@ type HTTPCfg struct {
 	Port string
 }
 
-func NewHTTPCfg(flagHTTP *HTTPCfg) *HTTPCfg {
+func NewHTTPCfg(flagHTTP *HTTPCfg) (*HTTPCfg, error) {
 	if flagHTTP.Host != "" && flagHTTP.Port != "" {
-		return flagHTTP
+		return flagHTTP, nil
 	}
 
 	cfg := &HTTPCfg{
@@ -23,13 +23,12 @@ func NewHTTPCfg(flagHTTP *HTTPCfg) *HTTPCfg {
 	}
 
 	if os.Getenv("SERVER_ADDRESS") != "" {
-		hp := strings.Split(os.Getenv("SERVER_ADDRESS"), ":")
-
-		cfg.Host = hp[0]
-		cfg.Port = hp[1]
+		if err := cfg.Set(os.Getenv("SERVER_ADDRESS")); err != nil {
+			return cfg, errors.New(err.Error())
+		}
 	}
 
-	return cfg
+	return cfg, nil
 }
 
 func (a *HTTPCfg) String() string {

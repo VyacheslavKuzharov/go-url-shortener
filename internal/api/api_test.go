@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/api/middlewares"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
@@ -89,7 +90,7 @@ func TestRouter(t *testing.T) {
 			expectedBody:   "",
 			expectedStatus: http.StatusTemporaryRedirect,
 			mockRepo: func() {
-				repo.getURL = func(key string) (string, bool) { return "google.com", true }
+				repo.getURL = func(key string) (string, error) { return "google.com", nil }
 			},
 			expectedHeader: "google.com",
 		},
@@ -99,7 +100,7 @@ func TestRouter(t *testing.T) {
 			expectedBody:   "shortKey not found",
 			expectedStatus: http.StatusBadRequest,
 			mockRepo: func() {
-				repo.getURL = func(key string) (string, bool) { return "", false }
+				repo.getURL = func(key string) (string, error) { return "", errors.New("shortKey not found") }
 			},
 			expectedHeader: "",
 		},

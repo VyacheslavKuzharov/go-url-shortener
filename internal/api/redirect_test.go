@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -24,7 +25,7 @@ func TestRedirectHandler(t *testing.T) {
 			request:        "/qwerty",
 			expectedCode:   http.StatusTemporaryRedirect,
 			expectedHeader: originalURL,
-			mock:           &MockStorage{getURL: func(key string) (string, bool) { return originalURL, true }},
+			mock:           &MockStorage{getURL: func(key string) (string, error) { return originalURL, nil }},
 		},
 		{
 			name:           "when unhappy path: incorrect request method",
@@ -32,7 +33,7 @@ func TestRedirectHandler(t *testing.T) {
 			request:        "/qwerty",
 			expectedCode:   http.StatusMethodNotAllowed,
 			expectedHeader: "",
-			mock:           &MockStorage{getURL: func(key string) (string, bool) { return originalURL, true }},
+			mock:           &MockStorage{getURL: func(key string) (string, error) { return originalURL, nil }},
 		},
 		{
 			name:           "when unhappy path: short key not found",
@@ -40,7 +41,7 @@ func TestRedirectHandler(t *testing.T) {
 			request:        "/qwerty",
 			expectedCode:   http.StatusBadRequest,
 			expectedHeader: "",
-			mock:           &MockStorage{getURL: func(key string) (string, bool) { return "", false }},
+			mock:           &MockStorage{getURL: func(key string) (string, error) { return "", errors.New("short key not found") }},
 		},
 	}
 	for _, tc := range testCases {
