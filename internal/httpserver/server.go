@@ -34,8 +34,6 @@ func New(handler http.Handler) *Server {
 
 func (s *Server) Start(host string, port string) {
 	s.server.Addr = net.JoinHostPort(host, port)
-	log.Println("Starting server on:", s.server.Addr)
-
 	err := s.server.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)

@@ -10,6 +10,7 @@ import (
 type Config struct {
 	HTTP    HTTPCfg
 	BaseURL BaseURLCfg
+	Log     LogCfg
 }
 
 type HTTPCfg struct {
@@ -19,6 +20,10 @@ type HTTPCfg struct {
 
 type BaseURLCfg struct {
 	Addr string
+}
+
+type LogCfg struct {
+	Level string
 }
 
 func New() (*Config, error) {
@@ -42,6 +47,8 @@ func New() (*Config, error) {
 	} else if baseURL.Addr != "" {
 		cfg.BaseURL = *baseURL
 	}
+
+	cfg.Log.Level = "info"
 
 	return cfg, nil
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,8 +22,9 @@ func initRouter(t *testing.T) (chi.Router, *MockStorage) {
 	router := chi.NewRouter()
 	cfg, _ := config.New()
 	storage := NewMockStorage()
+	l := logger.New(cfg.Log.Level)
 
-	api = New(router, cfg, storage)
+	api = New(router, cfg, storage, l)
 
 	return api.router, storage
 }
