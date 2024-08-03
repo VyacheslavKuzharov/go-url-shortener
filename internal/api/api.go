@@ -32,6 +32,7 @@ func (api *API) start() {
 	api.router.Use(middlewares.Compress)
 
 	api.router.Post(`/`, saveURLHandler(api.storage, api.cfg))
+	api.router.Get(`/ping`, pingHandler(api.storage))
 	api.router.Get(`/{shortKey}`, redirectHandler(api.storage))
 
 	api.router.Route("/api", func(r chi.Router) {

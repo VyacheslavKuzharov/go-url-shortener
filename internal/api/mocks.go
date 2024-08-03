@@ -7,6 +7,7 @@ func NewMockStorage() *MockStorage {
 type MockStorage struct {
 	saveURL func(string) (string, error)
 	getURL  func(string) (string, error)
+	ping    func() error
 }
 
 func (m *MockStorage) SaveURL(originalURL string) (string, error) {
@@ -19,4 +20,8 @@ func (m *MockStorage) GetURL(key string) (string, error) {
 
 func (m *MockStorage) Close() error {
 	return nil
+}
+
+func (m *MockStorage) Ping() error {
+	return m.ping()
 }

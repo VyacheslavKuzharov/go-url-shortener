@@ -79,3 +79,7 @@ func (s *FileStorage) GetURL(key string) (string, error) {
 func (s *FileStorage) Close() error {
 	return s.file.Close()
 }
+
+func (s *FileStorage) Ping() error {
+	return nil
+}
