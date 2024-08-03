@@ -146,6 +146,14 @@ func TestRouter(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 			mockRepo:       func() {},
 		},
+		{
+			url:            "/ping",
+			reqMethod:      "GET",
+			reqBody:        bytes.NewReader([]byte("")),
+			expectedBody:   "",
+			expectedStatus: http.StatusOK,
+			mockRepo:       func() { repo.ping = func() error { return nil } },
+		},
 	}
 	for _, tc := range testCases {
 		tc.mockRepo()
