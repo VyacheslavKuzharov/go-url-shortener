@@ -6,6 +6,7 @@ import (
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/httpapi"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/httpapi/response"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/postgres"
 	"io"
 	"net/http"
 )
@@ -17,6 +18,8 @@ type Request struct {
 type Response struct {
 	Result string `json:"result,omitempty"`
 }
+
+var pgUniqueFieldErr *postgres.UniqueFieldErr
 
 func shortenHandler(storage urlSaver, cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -40,6 +43,14 @@ func shortenHandler(storage urlSaver, cfg *config.Config) http.HandlerFunc {
 
 		shortKey, err := storage.SaveURL(req.URL)
 		if err != nil {
+			if errors.As(err, &pgUniqueFieldErr) {
+				response.OK(w, http.StatusConflict, Response{
+					Result: httpapi.FullShortenedURL(pgUniqueFieldErr.Payload, cfg),
+				})
+
+				return
+			}
+
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}

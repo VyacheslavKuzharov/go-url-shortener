@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/httpapi"
 	"io"
@@ -37,6 +38,15 @@ func saveURLHandler(storage urlSaver, cfg *config.Config) http.HandlerFunc {
 
 		shortKey, err := storage.SaveURL(originalURL)
 		if err != nil {
+			if errors.As(err, &pgUniqueFieldErr) {
+				su := httpapi.FullShortenedURL(pgUniqueFieldErr.Payload, cfg)
+
+				w.Header().Set("Content-Type", "text/plain")
+				w.WriteHeader(http.StatusConflict)
+				w.Write([]byte(su)) //nolint:errcheck
+				return
+			}
+
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -45,8 +55,6 @@ func saveURLHandler(storage urlSaver, cfg *config.Config) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
-		if _, err = w.Write([]byte(shortenedURL)); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
+		w.Write([]byte(shortenedURL)) //nolint:errcheck
 	}
 }

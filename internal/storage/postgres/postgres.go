@@ -5,7 +5,9 @@ import (
 	"errors"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/entity"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/random"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -33,11 +35,17 @@ func (pg *Pg) SaveURL(originalURL string) (string, error) {
 
 	_, err := pg.Pool.Exec(
 		ctx,
-		`INSERT INTO shorten_urls(short_key, original_url) VALUES ($1, $2)`,
+		"INSERT INTO shorten_urls(short_key, original_url) VALUES ($1, $2)",
 		shortKey,
 		originalURL,
 	)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			key, _ := pg.getShortKey(originalURL)
+			return "", NewUniqueFieldErr(originalURL, key, err)
+		}
+
 		return "", err
 	}
 
@@ -113,4 +121,21 @@ func (pg *Pg) Ping() error {
 	}
 
 	return nil
+}
+
+func (pg *Pg) getShortKey(originalURL string) (string, error) {
+	ctx := context.Background()
+	var shortKey string
+
+	row := pg.Pool.QueryRow(
+		ctx,
+		"SELECT short_key FROM shorten_urls WHERE original_url = $1",
+		originalURL,
+	)
+	err := row.Scan(&shortKey)
+	if err != nil {
+		return "", errors.New("shortKey not found")
+	}
+
+	return shortKey, nil
 }
