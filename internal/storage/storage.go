@@ -1,9 +1,11 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
 	storagecfg "github.com/VyacheslavKuzharov/go-url-shortener/internal/config/storage"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/entity"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/infile"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/inmemory"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/postgres"
@@ -12,6 +14,7 @@ import (
 type Storager interface {
 	SaveURL(originalURL string) (string, error)
 	GetURL(key string) (string, error)
+	SaveBatchURLs(ctx context.Context, urls *[]entity.ShortenURL) error
 	Close() error
 	Ping() error
 }

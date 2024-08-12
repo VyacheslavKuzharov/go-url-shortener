@@ -1,7 +1,9 @@
 package inmemory
 
 import (
+	"context"
 	"errors"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/entity"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/random"
 	"sync"
 )
@@ -29,6 +31,22 @@ func (s *MemStorage) SaveURL(originalURL string) (string, error) {
 
 	s.urls[shortKey] = originalURL
 	return shortKey, nil
+}
+
+func (s *MemStorage) SaveBatchURLs(ctx context.Context, urls *[]entity.ShortenURL) error {
+	resolvedURLs := *urls
+
+	if len(resolvedURLs) == 0 {
+		return nil
+	}
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	for _, su := range resolvedURLs {
+		s.urls[su.ShortKey] = su.OriginalURL
+	}
+
+	return nil
 }
 
 func (s *MemStorage) GetURL(key string) (string, error) {

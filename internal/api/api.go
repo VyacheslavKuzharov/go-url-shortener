@@ -37,5 +37,6 @@ func (api *API) start() {
 
 	api.router.Route("/api", func(r chi.Router) {
 		r.Post(`/shorten`, shortenHandler(api.storage, api.cfg))
+		r.Post(`/shorten/batch`, batchHandler(api.storage, api.cfg))
 	})
 }
