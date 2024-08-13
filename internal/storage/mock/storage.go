@@ -50,36 +50,36 @@ func (mr *MockStoragerMockRecorder) Close() *gomock.Call {
 }
 
 // GetURL mocks base method.
-func (m *MockStorager) GetURL(key string) (string, error) {
+func (m *MockStorager) GetURL(ctx context.Context, key string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetURL", key)
+	ret := m.ctrl.Call(m, "GetURL", ctx, key)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetURL indicates an expected call of GetURL.
-func (mr *MockStoragerMockRecorder) GetURL(key interface{}) *gomock.Call {
+func (mr *MockStoragerMockRecorder) GetURL(ctx, key interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetURL", reflect.TypeOf((*MockStorager)(nil).GetURL), key)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetURL", reflect.TypeOf((*MockStorager)(nil).GetURL), ctx, key)
 }
 
 // Ping mocks base method.
-func (m *MockStorager) Ping() error {
+func (m *MockStorager) Ping(ctx context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Ping")
+	ret := m.ctrl.Call(m, "Ping", ctx)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Ping indicates an expected call of Ping.
-func (mr *MockStoragerMockRecorder) Ping() *gomock.Call {
+func (mr *MockStoragerMockRecorder) Ping(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockStorager)(nil).Ping))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockStorager)(nil).Ping), ctx)
 }
 
 // SaveBatchURLs mocks base method.
-func (m *MockStorager) SaveBatchURLs(ctx context.Context, urls *[]entity.ShortenURL) error {
+func (m *MockStorager) SaveBatchURLs(ctx context.Context, urls []entity.ShortenURL) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SaveBatchURLs", ctx, urls)
 	ret0, _ := ret[0].(error)
@@ -93,16 +93,16 @@ func (mr *MockStoragerMockRecorder) SaveBatchURLs(ctx, urls interface{}) *gomock
 }
 
 // SaveURL mocks base method.
-func (m *MockStorager) SaveURL(originalURL string) (string, error) {
+func (m *MockStorager) SaveURL(ctx context.Context, originalURL string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SaveURL", originalURL)
+	ret := m.ctrl.Call(m, "SaveURL", ctx, originalURL)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // SaveURL indicates an expected call of SaveURL.
-func (mr *MockStoragerMockRecorder) SaveURL(originalURL interface{}) *gomock.Call {
+func (mr *MockStoragerMockRecorder) SaveURL(ctx, originalURL interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveURL", reflect.TypeOf((*MockStorager)(nil).SaveURL), originalURL)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveURL", reflect.TypeOf((*MockStorager)(nil).SaveURL), ctx, originalURL)
 }

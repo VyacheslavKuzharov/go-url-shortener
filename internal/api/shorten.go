@@ -19,11 +19,10 @@ type Response struct {
 	Result string `json:"result,omitempty"`
 }
 
-var pgUniqueFieldErr *postgres.UniqueFieldErr
-
 func shortenHandler(storage urlSaver, cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req Request
+		var pgUniqueFieldErr *postgres.UniqueFieldErr
 
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&req)
@@ -41,7 +40,7 @@ func shortenHandler(storage urlSaver, cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		shortKey, err := storage.SaveURL(req.URL)
+		shortKey, err := storage.SaveURL(r.Context(), req.URL)
 		if err != nil {
 			if errors.As(err, &pgUniqueFieldErr) {
 				response.OK(w, http.StatusConflict, Response{

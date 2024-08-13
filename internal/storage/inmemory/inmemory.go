@@ -19,7 +19,7 @@ func NewMemoryStorage() (*MemStorage, error) {
 	}, nil
 }
 
-func (s *MemStorage) SaveURL(originalURL string) (string, error) {
+func (s *MemStorage) SaveURL(ctx context.Context, originalURL string) (string, error) {
 	if originalURL == "" {
 		return "", errors.New("originalURL can't be blank")
 	}
@@ -33,23 +33,21 @@ func (s *MemStorage) SaveURL(originalURL string) (string, error) {
 	return shortKey, nil
 }
 
-func (s *MemStorage) SaveBatchURLs(ctx context.Context, urls *[]entity.ShortenURL) error {
-	resolvedURLs := *urls
-
-	if len(resolvedURLs) == 0 {
+func (s *MemStorage) SaveBatchURLs(ctx context.Context, urls []entity.ShortenURL) error {
+	if len(urls) == 0 {
 		return nil
 	}
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	for _, su := range resolvedURLs {
+	for _, su := range urls {
 		s.urls[su.ShortKey] = su.OriginalURL
 	}
 
 	return nil
 }
 
-func (s *MemStorage) GetURL(key string) (string, error) {
+func (s *MemStorage) GetURL(ctx context.Context, key string) (string, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -65,6 +63,6 @@ func (s *MemStorage) Close() error {
 	return nil
 }
 
-func (s *MemStorage) Ping() error {
+func (s *MemStorage) Ping(ctx context.Context) error {
 	return nil
 }

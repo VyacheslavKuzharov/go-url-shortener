@@ -26,11 +26,10 @@ func New(connectURL string) (*Pg, error) {
 	}, nil
 }
 
-func (pg *Pg) SaveURL(originalURL string) (string, error) {
+func (pg *Pg) SaveURL(ctx context.Context, originalURL string) (string, error) {
 	if originalURL == "" {
 		return "", errors.New("originalURL can't be blank")
 	}
-	ctx := context.Background()
 	shortKey := random.GenShortKey()
 
 	_, err := pg.Pool.Exec(
@@ -52,10 +51,8 @@ func (pg *Pg) SaveURL(originalURL string) (string, error) {
 	return shortKey, nil
 }
 
-func (pg *Pg) SaveBatchURLs(ctx context.Context, urls *[]entity.ShortenURL) error {
-	resolvedURLs := *urls
-
-	if len(resolvedURLs) == 0 {
+func (pg *Pg) SaveBatchURLs(ctx context.Context, urls []entity.ShortenURL) error {
+	if len(urls) == 0 {
 		return nil
 	}
 
@@ -63,11 +60,13 @@ func (pg *Pg) SaveBatchURLs(ctx context.Context, urls *[]entity.ShortenURL) erro
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx) //nolint:errcheck
+	defer func() {
+		err = tx.Rollback(ctx)
+	}()
 
 	var batch = &pgx.Batch{}
 
-	for _, u := range resolvedURLs {
+	for _, u := range urls {
 		batch.Queue(
 			`INSERT INTO shorten_urls (short_key, original_url) VALUES ($1, $2)`,
 			u.ShortKey,
@@ -84,8 +83,7 @@ func (pg *Pg) SaveBatchURLs(ctx context.Context, urls *[]entity.ShortenURL) erro
 	return tx.Commit(ctx)
 }
 
-func (pg *Pg) GetURL(key string) (string, error) {
-	ctx := context.Background()
+func (pg *Pg) GetURL(ctx context.Context, key string) (string, error) {
 	var originalURL string
 
 	row := pg.Pool.QueryRow(
@@ -106,17 +104,8 @@ func (pg *Pg) Close() error {
 	return nil
 }
 
-func (pg *Pg) Ping() error {
-	ctx := context.Background()
-
-	conn, err := pg.Pool.Acquire(ctx)
-	if err != nil {
-		return err
-	}
-	defer conn.Release()
-
-	err = conn.Ping(ctx)
-	if err != nil {
+func (pg *Pg) Ping(ctx context.Context) error {
+	if err := pg.Pool.Ping(ctx); err != nil {
 		return err
 	}
 

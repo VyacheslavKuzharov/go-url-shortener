@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
 	httpcfg "github.com/VyacheslavKuzharov/go-url-shortener/internal/config/http"
@@ -33,7 +34,7 @@ func TestShortenHandler(t *testing.T) {
 			reqBody:      bytes.NewReader([]byte(`{"url":"https://practicum.yandex.ru/"}`)),
 			expectedCode: http.StatusCreated,
 			expectedBody: expectedBody,
-			mock:         &MockStorage{saveURL: func(originalURL string) (string, error) { return shortKey, nil }},
+			mock:         &MockStorage{saveURL: func(ctx context.Context, originalURL string) (string, error) { return shortKey, nil }},
 		},
 		{
 			name:         "when unhappy path: empty reqBody",

@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/api/middlewares"
@@ -73,7 +74,7 @@ func TestRouter(t *testing.T) {
 			expectedBody:   fmt.Sprintf("http://localhost:8080/%s", "qwerty"),
 			expectedStatus: http.StatusCreated,
 			mockRepo: func() {
-				repo.saveURL = func(originalURL string) (string, error) { return "qwerty", nil }
+				repo.saveURL = func(ctx context.Context, originalURL string) (string, error) { return "qwerty", nil }
 			},
 		},
 		{
@@ -90,7 +91,7 @@ func TestRouter(t *testing.T) {
 			expectedBody:   "",
 			expectedStatus: http.StatusTemporaryRedirect,
 			mockRepo: func() {
-				repo.getURL = func(key string) (string, error) { return "google.com", nil }
+				repo.getURL = func(ctx context.Context, key string) (string, error) { return "google.com", nil }
 			},
 			expectedHeader: "google.com",
 		},
@@ -100,7 +101,7 @@ func TestRouter(t *testing.T) {
 			expectedBody:   "shortKey not found",
 			expectedStatus: http.StatusBadRequest,
 			mockRepo: func() {
-				repo.getURL = func(key string) (string, error) { return "", errors.New("shortKey not found") }
+				repo.getURL = func(ctx context.Context, key string) (string, error) { return "", errors.New("shortKey not found") }
 			},
 			expectedHeader: "",
 		},
@@ -111,7 +112,7 @@ func TestRouter(t *testing.T) {
 			expectedBody:   `{"result":"http://localhost:8080/fG4oX4"}`,
 			expectedStatus: http.StatusCreated,
 			mockRepo: func() {
-				repo.saveURL = func(originalURL string) (string, error) { return "fG4oX4", nil }
+				repo.saveURL = func(ctx context.Context, originalURL string) (string, error) { return "fG4oX4", nil }
 			},
 		},
 		{
@@ -152,7 +153,7 @@ func TestRouter(t *testing.T) {
 			reqBody:        bytes.NewReader([]byte("")),
 			expectedBody:   "",
 			expectedStatus: http.StatusOK,
-			mockRepo:       func() { repo.ping = func() error { return nil } },
+			mockRepo:       func() { repo.ping = func(ctx context.Context) error { return nil } },
 		},
 	}
 	for _, tc := range testCases {
@@ -172,7 +173,7 @@ func TestRouter(t *testing.T) {
 
 func TestGzipCompression(t *testing.T) {
 	cfgs := &config.Config{HTTP: httpcfg.HTTPCfg{Host: "localhost", Port: "8080"}}
-	mock := &MockStorage{saveURL: func(originalURL string) (string, error) { return "NUf6O3", nil }}
+	mock := &MockStorage{saveURL: func(ctx context.Context, originalURL string) (string, error) { return "NUf6O3", nil }}
 
 	handler := middlewares.Compress(shortenHandler(mock, cfgs))
 

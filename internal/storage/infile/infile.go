@@ -28,7 +28,7 @@ func NewFileStorage(fileName string) (*FileStorage, error) {
 	}, nil
 }
 
-func (s *FileStorage) SaveURL(originalURL string) (string, error) {
+func (s *FileStorage) SaveURL(ctx context.Context, originalURL string) (string, error) {
 	if originalURL == "" {
 		return "", errors.New("originalURL can't be blank")
 	}
@@ -50,16 +50,14 @@ func (s *FileStorage) SaveURL(originalURL string) (string, error) {
 	return su.ShortKey, nil
 }
 
-func (s *FileStorage) SaveBatchURLs(ctx context.Context, urls *[]entity.ShortenURL) error {
-	resolvedURLs := *urls
-
-	if len(resolvedURLs) == 0 {
+func (s *FileStorage) SaveBatchURLs(ctx context.Context, urls []entity.ShortenURL) error {
+	if len(urls) == 0 {
 		return nil
 	}
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	for _, su := range resolvedURLs {
+	for _, su := range urls {
 		err := s.encoder.Encode(&su)
 		if err != nil {
 			return err
@@ -69,7 +67,7 @@ func (s *FileStorage) SaveBatchURLs(ctx context.Context, urls *[]entity.ShortenU
 	return nil
 }
 
-func (s *FileStorage) GetURL(key string) (string, error) {
+func (s *FileStorage) GetURL(ctx context.Context, key string) (string, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -100,6 +98,6 @@ func (s *FileStorage) Close() error {
 	return s.file.Close()
 }
 
-func (s *FileStorage) Ping() error {
+func (s *FileStorage) Ping(ctx context.Context) error {
 	return nil
 }

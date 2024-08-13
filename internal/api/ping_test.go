@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/mock"
 	"github.com/golang/mock/gomock"
@@ -29,14 +30,14 @@ func TestPingHandler(t *testing.T) {
 			method:       http.MethodGet,
 			expectedCode: http.StatusOK,
 			expectedBody: "",
-			mocks:        s.EXPECT().Ping().Return(nil),
+			mocks:        s.EXPECT().Ping(context.Background()).Return(nil),
 		},
 		{
 			name:         "when InternalServerError",
 			method:       http.MethodGet,
 			expectedCode: http.StatusInternalServerError,
 			expectedBody: "",
-			mocks:        s.EXPECT().Ping().Return(errors.New("test")),
+			mocks:        s.EXPECT().Ping(context.Background()).Return(errors.New("test")),
 		},
 	}
 
