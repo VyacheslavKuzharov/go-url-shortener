@@ -46,3 +46,7 @@ func (s *MemStorage) GetURL(key string) (string, error) {
 func (s *MemStorage) Close() error {
 	return nil
 }
+
+func (s *MemStorage) Ping() error {
+	return nil
+}
