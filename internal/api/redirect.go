@@ -1,12 +1,13 @@
 package api
 
 import (
+	"context"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 )
 
 type urlGetter interface {
-	GetURL(key string) (string, error)
+	GetURL(ctx context.Context, key string) (string, error)
 }
 
 func redirectHandler(storage urlGetter) http.HandlerFunc {
@@ -18,7 +19,7 @@ func redirectHandler(storage urlGetter) http.HandlerFunc {
 
 		shortKey := chi.URLParam(r, "shortKey")
 
-		originalURL, err := storage.GetURL(shortKey)
+		originalURL, err := storage.GetURL(r.Context(), shortKey)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

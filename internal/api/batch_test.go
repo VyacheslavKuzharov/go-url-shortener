@@ -73,14 +73,14 @@ func TestBatchHandler(t *testing.T) {
 			method:       http.MethodPost,
 			reqBody:      bytes.NewReader([]byte(validRequest)),
 			expectedCode: http.StatusCreated,
-			mock:         s.EXPECT().SaveBatchURLs(context.Background(), gomock.AssignableToTypeOf(&shortenURLs)).Return(nil),
+			mock:         s.EXPECT().SaveBatchURLs(context.Background(), gomock.AssignableToTypeOf(shortenURLs)).Return(nil),
 		},
 		{
 			name:         "when unhappy path: SaveBatchURLs returns error",
 			method:       http.MethodPost,
 			reqBody:      bytes.NewReader([]byte(validRequest)),
 			expectedCode: http.StatusInternalServerError,
-			mock:         s.EXPECT().SaveBatchURLs(context.Background(), gomock.AssignableToTypeOf(&shortenURLs)).Return(errors.New("test")),
+			mock:         s.EXPECT().SaveBatchURLs(context.Background(), gomock.AssignableToTypeOf(shortenURLs)).Return(errors.New("test")),
 		},
 		{
 			name:         "when unhappy path: empty reqBody",
@@ -93,7 +93,7 @@ func TestBatchHandler(t *testing.T) {
 			method:       http.MethodPost,
 			reqBody:      bytes.NewReader([]byte(inValidRequest)),
 			expectedCode: http.StatusBadRequest,
-			mock:         s.EXPECT().SaveBatchURLs(context.Background(), gomock.AssignableToTypeOf(&shortenURLs)).Return(nil),
+			mock:         s.EXPECT().SaveBatchURLs(context.Background(), gomock.AssignableToTypeOf(shortenURLs)).Return(nil),
 		},
 	}
 

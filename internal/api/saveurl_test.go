@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
 	httpcfg "github.com/VyacheslavKuzharov/go-url-shortener/internal/config/http"
@@ -33,7 +34,7 @@ func TestSaveUrlHandler(t *testing.T) {
 			reqBody:      bytes.NewReader([]byte(originalURL)),
 			expectedCode: http.StatusCreated,
 			expectedBody: expectedBody,
-			mock:         &MockStorage{saveURL: func(originalURL string) (string, error) { return shortKey, nil }},
+			mock:         &MockStorage{saveURL: func(ctx context.Context, originalURL string) (string, error) { return shortKey, nil }},
 		},
 		{
 			name:         "when unhappy path: incorrect request method",
@@ -41,7 +42,7 @@ func TestSaveUrlHandler(t *testing.T) {
 			reqBody:      bytes.NewReader([]byte(originalURL)),
 			expectedCode: http.StatusMethodNotAllowed,
 			expectedBody: "Only POST requests allowed!\n",
-			mock:         &MockStorage{saveURL: func(originalURL string) (string, error) { return shortKey, nil }},
+			mock:         &MockStorage{saveURL: func(ctx context.Context, originalURL string) (string, error) { return shortKey, nil }},
 		},
 		{
 			name:         "when unhappy path: empty reqBody",
@@ -49,7 +50,7 @@ func TestSaveUrlHandler(t *testing.T) {
 			reqBody:      bytes.NewReader([]byte("")),
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "URL parameter is missing\n",
-			mock:         &MockStorage{saveURL: func(originalURL string) (string, error) { return shortKey, nil }},
+			mock:         &MockStorage{saveURL: func(ctx context.Context, originalURL string) (string, error) { return shortKey, nil }},
 		},
 	}
 	for _, tc := range testCases {

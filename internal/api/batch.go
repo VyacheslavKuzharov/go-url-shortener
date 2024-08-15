@@ -14,7 +14,7 @@ import (
 	"net/http"
 )
 
-const batchCapacity = 500
+const maxBatchCapacity = 500
 
 var invalidURLErr string
 
@@ -29,7 +29,7 @@ type aliasResponseItem struct {
 }
 
 type batchURLSaver interface {
-	SaveBatchURLs(ctx context.Context, urls *[]entity.ShortenURL) error
+	SaveBatchURLs(ctx context.Context, urls []entity.ShortenURL) error
 }
 
 func batchHandler(storage batchURLSaver, cfg *config.Config) http.HandlerFunc {
@@ -49,7 +49,7 @@ func batchHandler(storage batchURLSaver, cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Make ShortenURLs slice to save in Storage
-		shortenURLs := make([]entity.ShortenURL, 0, batchCapacity)
+		shortenURLs := make([]entity.ShortenURL, 0, maxBatchCapacity)
 
 		// Make aliasesBatch slice to api response
 		aliasesBatch := make([]aliasResponseItem, 0, len(urlBatch))
@@ -67,8 +67,8 @@ func batchHandler(storage batchURLSaver, cfg *config.Config) http.HandlerFunc {
 			}
 
 			shortenURLs = append(shortenURLs, su)
-			if len(shortenURLs) == batchCapacity {
-				err = storage.SaveBatchURLs(r.Context(), &shortenURLs)
+			if len(shortenURLs) == maxBatchCapacity {
+				err = storage.SaveBatchURLs(r.Context(), shortenURLs)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
@@ -86,7 +86,7 @@ func batchHandler(storage batchURLSaver, cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Save the remaining records
-		err = storage.SaveBatchURLs(r.Context(), &shortenURLs)
+		err = storage.SaveBatchURLs(r.Context(), shortenURLs)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

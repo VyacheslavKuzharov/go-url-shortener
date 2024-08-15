@@ -12,11 +12,11 @@ import (
 )
 
 type Storager interface {
-	SaveURL(originalURL string) (string, error)
-	GetURL(key string) (string, error)
-	SaveBatchURLs(ctx context.Context, urls *[]entity.ShortenURL) error
+	SaveURL(ctx context.Context, originalURL string) (string, error)
+	GetURL(ctx context.Context, key string) (string, error)
+	SaveBatchURLs(ctx context.Context, urls []entity.ShortenURL) error
+	Ping(ctx context.Context) error
 	Close() error
-	Ping() error
 }
 
 func New(cfg *config.Config) (Storager, error) {
