@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"context"
+	"errors"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/random"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -21,11 +23,40 @@ func New(connectURL string) (*Pg, error) {
 }
 
 func (pg *Pg) SaveURL(originalURL string) (string, error) {
-	return "", nil
+	if originalURL == "" {
+		return "", errors.New("originalURL can't be blank")
+	}
+	ctx := context.Background()
+	shortKey := random.GenShortKey()
+
+	_, err := pg.Pool.Exec(
+		ctx,
+		`INSERT INTO shorten_urls(short_key, original_url) VALUES ($1, $2)`,
+		shortKey,
+		originalURL,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	return shortKey, nil
 }
 
 func (pg *Pg) GetURL(key string) (string, error) {
-	return "", nil
+	ctx := context.Background()
+	var originalURL string
+
+	row := pg.Pool.QueryRow(
+		ctx,
+		"SELECT original_url FROM shorten_urls WHERE short_key = $1",
+		key,
+	)
+	err := row.Scan(&originalURL)
+	if err != nil {
+		return "", errors.New("shortKey not found")
+	}
+
+	return originalURL, nil
 }
 
 func (pg *Pg) Close() error {

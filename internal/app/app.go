@@ -3,9 +3,11 @@ package app
 import (
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/api"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
+	storagecfg "github.com/VyacheslavKuzharov/go-url-shortener/internal/config/storage"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/httpserver"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/logger"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/postgres"
 	"github.com/go-chi/chi/v5"
 	"log"
 	"net"
@@ -20,6 +22,10 @@ func Run(cfg *config.Config) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if cfg.Storage.Kind == storagecfg.Postgres {
+		postgres.RunMigrations(cfg.Storage.Postgres.ConnectURL, l)
+	}
+
 	l.Info("Storage initialized.")
 	defer s.Close()
 
