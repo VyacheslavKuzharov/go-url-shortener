@@ -3,7 +3,9 @@ package postgres
 import (
 	"context"
 	"errors"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/entity"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/random"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -40,6 +42,38 @@ func (pg *Pg) SaveURL(originalURL string) (string, error) {
 	}
 
 	return shortKey, nil
+}
+
+func (pg *Pg) SaveBatchURLs(ctx context.Context, urls *[]entity.ShortenURL) error {
+	resolvedURLs := *urls
+
+	if len(resolvedURLs) == 0 {
+		return nil
+	}
+
+	tx, err := pg.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	var batch = &pgx.Batch{}
+
+	for _, u := range resolvedURLs {
+		batch.Queue(
+			`INSERT INTO shorten_urls (short_key, original_url) VALUES ($1, $2)`,
+			u.ShortKey,
+			u.OriginalURL,
+		)
+	}
+
+	res := tx.SendBatch(ctx, batch)
+	err = res.Close()
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (pg *Pg) GetURL(key string) (string, error) {

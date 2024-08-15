@@ -5,8 +5,10 @@
 package mock
 
 import (
+	context "context"
 	reflect "reflect"
 
+	entity "github.com/VyacheslavKuzharov/go-url-shortener/internal/entity"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -74,6 +76,20 @@ func (m *MockStorager) Ping() error {
 func (mr *MockStoragerMockRecorder) Ping() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockStorager)(nil).Ping))
+}
+
+// SaveBatchURLs mocks base method.
+func (m *MockStorager) SaveBatchURLs(ctx context.Context, urls *[]entity.ShortenURL) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveBatchURLs", ctx, urls)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SaveBatchURLs indicates an expected call of SaveBatchURLs.
+func (mr *MockStoragerMockRecorder) SaveBatchURLs(ctx, urls interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveBatchURLs", reflect.TypeOf((*MockStorager)(nil).SaveBatchURLs), ctx, urls)
 }
 
 // SaveURL mocks base method.

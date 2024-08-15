@@ -1,6 +1,7 @@
 package infile
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/entity"
@@ -47,6 +48,25 @@ func (s *FileStorage) SaveURL(originalURL string) (string, error) {
 	}
 
 	return su.ShortKey, nil
+}
+
+func (s *FileStorage) SaveBatchURLs(ctx context.Context, urls *[]entity.ShortenURL) error {
+	resolvedURLs := *urls
+
+	if len(resolvedURLs) == 0 {
+		return nil
+	}
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	for _, su := range resolvedURLs {
+		err := s.encoder.Encode(&su)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *FileStorage) GetURL(key string) (string, error) {
