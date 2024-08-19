@@ -8,6 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	config "github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
 	entity "github.com/VyacheslavKuzharov/go-url-shortener/internal/entity"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -62,6 +63,21 @@ func (m *MockStorager) GetURL(ctx context.Context, key string) (string, error) {
 func (mr *MockStoragerMockRecorder) GetURL(ctx, key interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetURL", reflect.TypeOf((*MockStorager)(nil).GetURL), ctx, key)
+}
+
+// GetUserUrls mocks base method.
+func (m *MockStorager) GetUserUrls(ctx context.Context, currentUserID string, cfg *config.Config) ([]*entity.CompletedURL, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserUrls", ctx, currentUserID, cfg)
+	ret0, _ := ret[0].([]*entity.CompletedURL)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserUrls indicates an expected call of GetUserUrls.
+func (mr *MockStoragerMockRecorder) GetUserUrls(ctx, currentUserID, cfg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserUrls", reflect.TypeOf((*MockStorager)(nil).GetUserUrls), ctx, currentUserID, cfg)
 }
 
 // Ping mocks base method.

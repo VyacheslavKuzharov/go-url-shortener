@@ -155,6 +155,14 @@ func TestRouter(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			mockRepo:       func() { repo.ping = func(ctx context.Context) error { return nil } },
 		},
+		{
+			url:            "/api/user/urls",
+			reqMethod:      "GET",
+			reqBody:        bytes.NewReader([]byte("")),
+			expectedBody:   `{"error":"http: named cookie not present"}`,
+			expectedStatus: http.StatusUnauthorized,
+			mockRepo:       func() {},
+		},
 	}
 	for _, tc := range testCases {
 		tc.mockRepo()

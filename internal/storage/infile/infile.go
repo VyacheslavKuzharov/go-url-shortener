@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/entity"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/httpapi"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/random"
+	uuid "github.com/satori/go.uuid"
 	"os"
 	"sync"
 )
@@ -36,18 +39,26 @@ func (s *FileStorage) SaveURL(ctx context.Context, originalURL string) (string, 
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	shortKey := random.GenShortKey()
-	su := entity.ShortenURL{
-		ShortKey:    shortKey,
-		OriginalURL: originalURL,
+	userID, ok := ctx.Value(entity.CurrentUserID).(uuid.UUID)
+	if !ok {
+		return "", errors.New("invalid uuid type in infile.SaveURL()")
 	}
 
-	err := s.encoder.Encode(&su)
+	us := entity.UserShortenURL{
+		User: entity.User{
+			UUID: userID,
+		},
+		ShortenURL: entity.ShortenURL{
+			ShortKey:    random.GenShortKey(),
+			OriginalURL: originalURL},
+	}
+
+	err := s.encoder.Encode(&us)
 	if err != nil {
 		return "", err
 	}
 
-	return su.ShortKey, nil
+	return us.ShortenURL.ShortKey, nil
 }
 
 func (s *FileStorage) SaveBatchURLs(ctx context.Context, urls []entity.ShortenURL) error {
@@ -57,8 +68,20 @@ func (s *FileStorage) SaveBatchURLs(ctx context.Context, urls []entity.ShortenUR
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
+	userID, ok := ctx.Value(entity.CurrentUserID).(uuid.UUID)
+	if !ok {
+		return errors.New("invalid uuid type in infile.SaveBatchURLs()")
+	}
+
 	for _, su := range urls {
-		err := s.encoder.Encode(&su)
+		us := entity.UserShortenURL{
+			User: entity.User{
+				UUID: userID,
+			},
+			ShortenURL: su,
+		}
+
+		err := s.encoder.Encode(&us)
 		if err != nil {
 			return err
 		}
@@ -92,6 +115,43 @@ func (s *FileStorage) GetURL(ctx context.Context, key string) (string, error) {
 	}
 
 	return "", errors.New("shortKey not found")
+}
+
+func (s *FileStorage) GetUserUrls(ctx context.Context, currentUserID uuid.UUID, cfg *config.Config) ([]*entity.CompletedURL, error) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	var userURLs []*entity.CompletedURL
+
+	file, err := os.Open(s.file.Name())
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	decoder := json.NewDecoder(file)
+	us := entity.UserShortenURL{
+		User:       entity.User{},
+		ShortenURL: entity.ShortenURL{},
+	}
+
+	for decoder.More() {
+		err = decoder.Decode(&us)
+		if err != nil {
+			return nil, err
+		}
+
+		if uuid.Equal(us.User.UUID, currentUserID) {
+			cu := &entity.CompletedURL{
+				ShortURL:    httpapi.FullShortenedURL(us.ShortenURL.ShortKey, cfg),
+				OriginalURL: us.ShortenURL.OriginalURL,
+			}
+
+			userURLs = append(userURLs, cu)
+		}
+	}
+
+	return userURLs, nil
 }
 
 func (s *FileStorage) Close() error {

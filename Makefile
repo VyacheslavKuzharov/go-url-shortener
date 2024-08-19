@@ -29,9 +29,13 @@ go-run-pg: ### Run Go code with pg storage
 	go run cmd/shortener/main.go -d '$(PG_URL)?sslmode=disable'
 .PHONY: go-run-pg
 
-go-run: ### Run Go code with in memory storage
+go-run-file: ### Run Go code with file storage
+	go run cmd/shortener/main.go -f internal/storage/infile/urls.txt
+.PHONY: go-run-file
+
+go-run-mem: ### Run Go code with in memory storage
 	go run cmd/shortener/main.go
-.PHONY: go-run
+.PHONY: go-run-mem
 
 stop: ### Stop docker-compose
 	@echo "\n\033[0;33m Halting containers... \033[0m"
@@ -54,6 +58,10 @@ migrate-up: ### migration up
 	migrate -path migrations -database '$(PG_URL)?sslmode=disable' up
 .PHONY: db-migrate-up
 
+migrate-up-force: ### migration up force to fix DB on
+	migrate -path migrations -database '$(PG_URL)?sslmode=disable' force $(VERSION)
+.PHONY: db-migrate-up-force
+
 migrate-down: ### migration down
-	migrate -path migrations -database '$(PG_URL)?sslmode=disable' down
+	migrate -path migrations -database '$(PG_URL)?sslmode=disable' down $(STEP)
 .PHONY: db-migrate-down

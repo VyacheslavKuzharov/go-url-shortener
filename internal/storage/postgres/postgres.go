@@ -3,12 +3,15 @@ package postgres
 import (
 	"context"
 	"errors"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/config"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/entity"
+	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/httpapi"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/random"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	uuid "github.com/satori/go.uuid"
 )
 
 type Pg struct {
@@ -31,17 +34,19 @@ func (pg *Pg) SaveURL(ctx context.Context, originalURL string) (string, error) {
 		return "", errors.New("originalURL can't be blank")
 	}
 	shortKey := random.GenShortKey()
+	userID := ctx.Value(entity.CurrentUserID)
 
 	_, err := pg.Pool.Exec(
 		ctx,
-		"INSERT INTO shorten_urls(short_key, original_url) VALUES ($1, $2)",
+		"INSERT INTO shorten_urls(short_key, original_url, user_id) VALUES ($1, $2, $3)",
 		shortKey,
 		originalURL,
+		userID,
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-			key, _ := pg.getShortKey(originalURL)
+			key, _ := pg.getShortKey(ctx, originalURL)
 			return "", NewUniqueFieldErr(originalURL, key, err)
 		}
 
@@ -65,12 +70,14 @@ func (pg *Pg) SaveBatchURLs(ctx context.Context, urls []entity.ShortenURL) error
 	}()
 
 	var batch = &pgx.Batch{}
+	userID := ctx.Value(entity.CurrentUserID)
 
 	for _, u := range urls {
 		batch.Queue(
-			`INSERT INTO shorten_urls (short_key, original_url) VALUES ($1, $2)`,
+			`INSERT INTO shorten_urls (short_key, original_url, user_id) VALUES ($1, $2, $3)`,
 			u.ShortKey,
 			u.OriginalURL,
+			userID,
 		)
 	}
 
@@ -99,6 +106,46 @@ func (pg *Pg) GetURL(ctx context.Context, key string) (string, error) {
 	return originalURL, nil
 }
 
+func (pg *Pg) GetUserUrls(ctx context.Context, currentUserID uuid.UUID, cfg *config.Config) ([]*entity.CompletedURL, error) {
+	var userURLs []*entity.CompletedURL
+
+	rows, err := pg.Pool.Query(
+		ctx,
+		"SELECT short_key, original_url FROM shorten_urls WHERE user_id = $1",
+		currentUserID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var shortenURLs []entity.ShortenURL
+	for rows.Next() {
+		var su entity.ShortenURL
+
+		err = rows.Scan(&su.ShortKey, &su.OriginalURL)
+		if err != nil {
+			return nil, err
+		}
+
+		shortenURLs = append(shortenURLs, su)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range shortenURLs {
+		urlItem := &entity.CompletedURL{
+			ShortURL:    httpapi.FullShortenedURL(v.ShortKey, cfg),
+			OriginalURL: v.OriginalURL,
+		}
+		userURLs = append(userURLs, urlItem)
+	}
+
+	return userURLs, nil
+}
+
 func (pg *Pg) Close() error {
 	pg.Pool.Close()
 	return nil
@@ -112,8 +159,7 @@ func (pg *Pg) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (pg *Pg) getShortKey(originalURL string) (string, error) {
-	ctx := context.Background()
+func (pg *Pg) getShortKey(ctx context.Context, originalURL string) (string, error) {
 	var shortKey string
 
 	row := pg.Pool.QueryRow(

@@ -1,0 +1,1 @@
+CREATE INDEX CONCURRENTLY IF NOT EXISTS user_idx_original_url ON shorten_urls(user_id);
