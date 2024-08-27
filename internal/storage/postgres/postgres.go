@@ -7,6 +7,7 @@ import (
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/entity"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/httpapi"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/random"
+	softdelete "github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/workers/soft_delete"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -95,7 +96,7 @@ func (pg *Pg) GetURL(ctx context.Context, key string) (string, error) {
 
 	row := pg.Pool.QueryRow(
 		ctx,
-		"SELECT original_url FROM shorten_urls WHERE short_key = $1",
+		"SELECT original_url FROM shorten_urls WHERE short_key = $1 AND is_deleted = false",
 		key,
 	)
 	err := row.Scan(&originalURL)
@@ -111,7 +112,7 @@ func (pg *Pg) GetUserUrls(ctx context.Context, currentUserID uuid.UUID, cfg *con
 
 	rows, err := pg.Pool.Query(
 		ctx,
-		"SELECT short_key, original_url FROM shorten_urls WHERE user_id = $1",
+		"SELECT short_key, original_url FROM shorten_urls WHERE user_id = $1 AND is_deleted = false",
 		currentUserID,
 	)
 	if err != nil {
@@ -144,6 +145,28 @@ func (pg *Pg) GetUserUrls(ctx context.Context, currentUserID uuid.UUID, cfg *con
 	}
 
 	return userURLs, nil
+}
+
+func (pg *Pg) DeleteUserUrls(ctx context.Context, currentUserID uuid.UUID, urlKeysBatch []string) error {
+	if len(urlKeysBatch) == 0 {
+		return errors.New("array cannot be empty")
+	}
+
+	delObjects := softdelete.GenObjects(currentUserID, urlKeysBatch, 2)
+	var channels []<-chan softdelete.WorkerResult
+
+	for _, delObj := range delObjects {
+		channels = append(channels, softdelete.PgWorker(pg.Pool, ctx, delObj))
+	}
+
+	resultChan := softdelete.FanIn(channels)
+	for res := range resultChan {
+		if res.Err != nil {
+			return res.Err
+		}
+	}
+
+	return nil
 }
 
 func (pg *Pg) Close() error {

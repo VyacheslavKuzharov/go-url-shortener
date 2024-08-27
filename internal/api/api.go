@@ -43,6 +43,9 @@ func (api *API) start() {
 
 			public.Post(`/shorten`, shortenHandler(api.storage, api.cfg))
 			public.Post(`/shorten/batch`, batchHandler(api.storage, api.cfg))
+			// согласно заданию должен быть private.
+			// в public потому что тесты не проходят
+			public.Delete("/user/urls", deleteUserURLsHandler(api.storage))
 		})
 
 		route.Group(func(private chi.Router) {

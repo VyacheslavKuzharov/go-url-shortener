@@ -12,11 +12,12 @@ func NewMockStorage() *MockStorage {
 }
 
 type MockStorage struct {
-	saveURL       func(context.Context, string) (string, error)
-	saveBatchURLs func(context.Context, []entity.ShortenURL) error
-	getURL        func(context.Context, string) (string, error)
-	getUserUrls   func(context.Context, uuid.UUID, *config.Config) ([]*entity.CompletedURL, error)
-	ping          func(context.Context) error
+	saveURL        func(context.Context, string) (string, error)
+	saveBatchURLs  func(context.Context, []entity.ShortenURL) error
+	getURL         func(context.Context, string) (string, error)
+	getUserUrls    func(context.Context, uuid.UUID, *config.Config) ([]*entity.CompletedURL, error)
+	deleteUserUrls func(context.Context, uuid.UUID, []string) error
+	ping           func(context.Context) error
 }
 
 func (m *MockStorage) SaveURL(ctx context.Context, originalURL string) (string, error) {
@@ -33,6 +34,10 @@ func (m *MockStorage) GetURL(ctx context.Context, key string) (string, error) {
 
 func (m *MockStorage) GetUserUrls(ctx context.Context, currentUserID uuid.UUID, cfg *config.Config) ([]*entity.CompletedURL, error) {
 	return m.getUserUrls(ctx, currentUserID, cfg)
+}
+
+func (m *MockStorage) DeleteUserUrls(ctx context.Context, currentUserID uuid.UUID, urlKeysBatch []string) error {
+	return m.deleteUserUrls(ctx, currentUserID, urlKeysBatch)
 }
 
 func (m *MockStorage) Ping(ctx context.Context) error {

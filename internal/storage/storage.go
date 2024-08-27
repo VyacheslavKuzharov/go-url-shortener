@@ -17,6 +17,7 @@ type Storager interface {
 	GetURL(ctx context.Context, key string) (string, error)
 	GetUserUrls(ctx context.Context, currentUserID uuid.UUID, cfg *config.Config) ([]*entity.CompletedURL, error)
 	SaveBatchURLs(ctx context.Context, urls []entity.ShortenURL) error
+	DeleteUserUrls(ctx context.Context, currentUserID uuid.UUID, urlKeysBatch []string) error
 	Ping(ctx context.Context) error
 	Close() error
 }

@@ -21,7 +21,7 @@ func redirectHandler(storage urlGetter) http.HandlerFunc {
 
 		originalURL, err := storage.GetURL(r.Context(), shortKey)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusGone)
 			return
 		}
 

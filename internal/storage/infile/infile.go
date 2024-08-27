@@ -8,6 +8,7 @@ import (
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/entity"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/httpapi"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/random"
+	softdelete "github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/workers/soft_delete"
 	uuid "github.com/satori/go.uuid"
 	"os"
 	"sync"
@@ -101,16 +102,19 @@ func (s *FileStorage) GetURL(ctx context.Context, key string) (string, error) {
 	defer file.Close()
 
 	decoder := json.NewDecoder(file)
-	su := entity.ShortenURL{}
+	us := entity.UserShortenURL{
+		User:       entity.User{},
+		ShortenURL: entity.ShortenURL{},
+	}
 
 	for decoder.More() {
-		err = decoder.Decode(&su)
+		err = decoder.Decode(&us)
 		if err != nil {
 			return "", err
 		}
 
-		if su.ShortKey == key {
-			return su.OriginalURL, nil
+		if us.ShortenURL.ShortKey == key && !us.IsDeleted {
+			return us.ShortenURL.OriginalURL, nil
 		}
 	}
 
@@ -141,7 +145,7 @@ func (s *FileStorage) GetUserUrls(ctx context.Context, currentUserID uuid.UUID, 
 			return nil, err
 		}
 
-		if uuid.Equal(us.User.UUID, currentUserID) {
+		if uuid.Equal(us.User.UUID, currentUserID) && !us.IsDeleted {
 			cu := &entity.CompletedURL{
 				ShortURL:    httpapi.FullShortenedURL(us.ShortenURL.ShortKey, cfg),
 				OriginalURL: us.ShortenURL.OriginalURL,
@@ -152,6 +156,28 @@ func (s *FileStorage) GetUserUrls(ctx context.Context, currentUserID uuid.UUID, 
 	}
 
 	return userURLs, nil
+}
+
+func (s *FileStorage) DeleteUserUrls(ctx context.Context, currentUserID uuid.UUID, urlKeysBatch []string) error {
+	if len(urlKeysBatch) == 0 {
+		return errors.New("array cannot be empty")
+	}
+
+	delObjects := softdelete.GenObjects(currentUserID, urlKeysBatch, 2)
+	var channels []<-chan softdelete.WorkerResult
+
+	for _, delObj := range delObjects {
+		channels = append(channels, softdelete.FileWorker(s.file, s.encoder, &s.mutex, delObj))
+	}
+
+	resultChan := softdelete.FanIn(channels)
+	for res := range resultChan {
+		if res.Err != nil {
+			return res.Err
+		}
+	}
+
+	return nil
 }
 
 func (s *FileStorage) Close() error {
