@@ -31,12 +31,25 @@ func (api *API) start() {
 	api.router.Use(middlewares.Logger(api.logger))
 	api.router.Use(middlewares.Compress)
 
-	api.router.Post(`/`, saveURLHandler(api.storage, api.cfg))
 	api.router.Get(`/ping`, pingHandler(api.storage))
 	api.router.Get(`/{shortKey}`, redirectHandler(api.storage))
+	api.router.
+		With(middlewares.Cookies(api.logger)).
+		Post(`/`, saveURLHandler(api.storage, api.cfg))
 
-	api.router.Route("/api", func(r chi.Router) {
-		r.Post(`/shorten`, shortenHandler(api.storage, api.cfg))
-		r.Post(`/shorten/batch`, batchHandler(api.storage, api.cfg))
+	api.router.Route("/api", func(route chi.Router) {
+		route.Group(func(public chi.Router) {
+			public.Use(middlewares.Cookies(api.logger))
+
+			public.Post(`/shorten`, shortenHandler(api.storage, api.cfg))
+			public.Post(`/shorten/batch`, batchHandler(api.storage, api.cfg))
+			public.Delete("/user/urls", deleteUserURLsHandler(api.storage))
+		})
+
+		route.Group(func(private chi.Router) {
+			private.Use(middlewares.Auth)
+
+			private.Get("/user/urls", userURLsHandler(api.storage, api.cfg))
+		})
 	})
 }

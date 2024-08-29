@@ -99,7 +99,7 @@ func TestRouter(t *testing.T) {
 			url:            "/qwerty",
 			reqMethod:      "GET",
 			expectedBody:   "shortKey not found",
-			expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusGone,
 			mockRepo: func() {
 				repo.getURL = func(ctx context.Context, key string) (string, error) { return "", errors.New("shortKey not found") }
 			},
@@ -154,6 +154,14 @@ func TestRouter(t *testing.T) {
 			expectedBody:   "",
 			expectedStatus: http.StatusOK,
 			mockRepo:       func() { repo.ping = func(ctx context.Context) error { return nil } },
+		},
+		{
+			url:            "/api/user/urls",
+			reqMethod:      "GET",
+			reqBody:        bytes.NewReader([]byte("")),
+			expectedBody:   `{"error":"http: named cookie not present"}`,
+			expectedStatus: http.StatusUnauthorized,
+			mockRepo:       func() {},
 		},
 	}
 	for _, tc := range testCases {

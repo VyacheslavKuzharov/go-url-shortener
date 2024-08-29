@@ -40,7 +40,7 @@ func TestRedirectHandler(t *testing.T) {
 			name:           "when unhappy path: short key not found",
 			method:         http.MethodGet,
 			request:        "/qwerty",
-			expectedCode:   http.StatusBadRequest,
+			expectedCode:   http.StatusGone,
 			expectedHeader: "",
 			mock:           &MockStorage{getURL: func(ctx context.Context, key string) (string, error) { return "", errors.New("short key not found") }},
 		},

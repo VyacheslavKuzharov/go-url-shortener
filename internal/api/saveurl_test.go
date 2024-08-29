@@ -34,7 +34,7 @@ func TestSaveUrlHandler(t *testing.T) {
 			reqBody:      bytes.NewReader([]byte(originalURL)),
 			expectedCode: http.StatusCreated,
 			expectedBody: expectedBody,
-			mock:         &MockStorage{saveURL: func(ctx context.Context, originalURL string) (string, error) { return shortKey, nil }},
+			mock:         &MockStorage{saveURL: func(context.Context, string) (string, error) { return shortKey, nil }},
 		},
 		{
 			name:         "when unhappy path: incorrect request method",
