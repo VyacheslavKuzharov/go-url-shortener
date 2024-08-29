@@ -44,11 +44,9 @@ func setCookieHandler(w http.ResponseWriter, user *entity.User, l *logger.Logger
 	}
 
 	cookie := http.Cookie{
-		Name:     cookies.UserData,
-		Value:    buf.String(),
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
+		Name:  cookies.Title,
+		Value: buf.String(),
+		Path:  "/",
 	}
 
 	err = cookies.WriteEncrypted(w, cookie)
@@ -60,7 +58,7 @@ func setCookieHandler(w http.ResponseWriter, user *entity.User, l *logger.Logger
 func getCookieHandler(r *http.Request, l *logger.Logger) (uuid.UUID, error) {
 	var user entity.User
 
-	val, err := cookies.ReadEncrypted(r, cookies.UserData)
+	val, err := cookies.ReadEncrypted(r, cookies.Title)
 	if err != nil {
 		return uuid.Nil, err
 	}

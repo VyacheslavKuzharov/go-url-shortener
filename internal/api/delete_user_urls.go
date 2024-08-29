@@ -8,7 +8,9 @@ import (
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/httpapi/response"
 	uuid "github.com/satori/go.uuid"
 	"io"
+	"log"
 	"net/http"
+	"sync"
 )
 
 type userURLsDeleter interface {
@@ -32,13 +34,52 @@ func deleteUserURLsHandler(storage userURLsDeleter) http.HandlerFunc {
 			return
 		}
 
-		err = storage.DeleteUserUrls(r.Context(), currentUserID, urlKeysBatch)
-		if err != nil {
-			response.Err(w, err.Error(), http.StatusBadRequest)
-			return
+		batchSize := 5
+		batches := genSliceBatches(urlKeysBatch, batchSize)
+		channel := make(chan []string, len(batches))
+
+		for _, shortKeysBatch := range batches {
+			channel <- shortKeysBatch
 		}
+
+		var wg sync.WaitGroup
+		workers := 5
+
+		wg.Add(workers)
+		for i := 0; i < workers; i++ {
+			go func(ch chan []string, wg *sync.WaitGroup) {
+				defer wg.Done()
+
+				for shortKeysBatch := range ch {
+					err = storage.DeleteUserUrls(r.Context(), currentUserID, shortKeysBatch)
+					if err != nil {
+						log.Printf("Delete error: %s", err)
+					}
+				}
+
+			}(channel, &wg)
+		}
+
+		close(channel)
+		wg.Wait()
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
 	}
+}
+
+func genSliceBatches(slice []string, batchSize int) [][]string {
+	var batches [][]string
+
+	for i := 0; i < len(slice); i += batchSize {
+		end := i + batchSize
+
+		if end > len(slice) {
+			end = len(slice)
+		}
+
+		batches = append(batches, slice[i:end])
+	}
+
+	return batches
 }

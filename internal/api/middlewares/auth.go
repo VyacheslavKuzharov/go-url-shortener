@@ -14,7 +14,7 @@ func Auth(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		var currentUser entity.User
 
-		val, err := cookies.ReadEncrypted(r, cookies.UserData)
+		val, err := cookies.ReadEncrypted(r, cookies.Title)
 		if err != nil {
 			response.Err(w, err.Error(), http.StatusUnauthorized)
 			return

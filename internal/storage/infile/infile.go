@@ -8,7 +8,6 @@ import (
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/entity"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/httpapi"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/random"
-	softdelete "github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/workers/soft_delete"
 	uuid "github.com/satori/go.uuid"
 	"os"
 	"sync"
@@ -159,25 +158,84 @@ func (s *FileStorage) GetUserUrls(ctx context.Context, currentUserID uuid.UUID, 
 }
 
 func (s *FileStorage) DeleteUserUrls(ctx context.Context, currentUserID uuid.UUID, urlKeysBatch []string) error {
-	if len(urlKeysBatch) == 0 {
-		return errors.New("array cannot be empty")
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	var storageURLs []entity.UserShortenURL
+
+	f, err := os.Open(s.file.Name())
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	decoder := json.NewDecoder(f)
+	us := entity.UserShortenURL{
+		User:       entity.User{},
+		ShortenURL: entity.ShortenURL{},
+		IsDeleted:  false,
 	}
 
-	delObjects := softdelete.GenObjects(currentUserID, urlKeysBatch, 2)
-	var channels []<-chan softdelete.WorkerResult
+	for decoder.More() {
+		err = decoder.Decode(&us)
+		if err != nil {
+			return err
+		}
 
-	for _, delObj := range delObjects {
-		channels = append(channels, softdelete.FileWorker(s.file, s.encoder, &s.mutex, delObj))
+		storageURLs = append(storageURLs, us)
+	}
+	err = s.file.Truncate(0)
+	if err != nil {
+		return err
+	}
+	_, err = s.file.Seek(0, 0)
+	if err != nil {
+		return err
 	}
 
-	resultChan := softdelete.FanIn(channels)
-	for res := range resultChan {
-		if res.Err != nil {
-			return res.Err
+	for _, item := range storageURLs {
+		if contains(urlKeysBatch, item.ShortenURL.ShortKey) && !item.IsDeleted {
+			index := indexOf(item, storageURLs)
+			if index >= 0 {
+				storageURLs = remove(storageURLs, index)
+
+				item.IsDeleted = true
+				storageURLs = append(storageURLs, item)
+			}
+		}
+	}
+
+	for _, item := range storageURLs {
+		err = s.encoder.Encode(&item)
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+func contains(s []string, el string) bool {
+	for _, a := range s {
+		if a == el {
+			return true
+		}
+	}
+	return false
+}
+
+func indexOf(el entity.UserShortenURL, data []entity.UserShortenURL) int {
+	for k, v := range data {
+		if el == v {
+			return k
+		}
+	}
+	return -1 //not found.
+}
+
+func remove(s []entity.UserShortenURL, i int) []entity.UserShortenURL {
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
 }
 
 func (s *FileStorage) Close() error {

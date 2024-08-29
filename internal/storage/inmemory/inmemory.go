@@ -7,7 +7,6 @@ import (
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/entity"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/httpapi"
 	"github.com/VyacheslavKuzharov/go-url-shortener/internal/lib/random"
-	softdelete "github.com/VyacheslavKuzharov/go-url-shortener/internal/storage/workers/soft_delete"
 	uuid "github.com/satori/go.uuid"
 	"sync"
 )
@@ -107,21 +106,11 @@ func (s *MemStorage) GetUserUrls(ctx context.Context, currentUserID uuid.UUID, c
 }
 
 func (s *MemStorage) DeleteUserUrls(ctx context.Context, currentUserID uuid.UUID, urlKeysBatch []string) error {
-	if len(urlKeysBatch) == 0 {
-		return errors.New("array cannot be empty")
-	}
-
-	delObjects := softdelete.GenObjects(currentUserID, urlKeysBatch, 2)
-	var channels []<-chan softdelete.WorkerResult
-
-	for _, delObj := range delObjects {
-		channels = append(channels, softdelete.MemWorker(s.Urls, ctx, delObj))
-	}
-
-	resultChan := softdelete.FanIn(channels)
-	for res := range resultChan {
-		if res.Err != nil {
-			return res.Err
+	for _, key := range urlKeysBatch {
+		el, ok := s.Urls[key]
+		if ok {
+			el.IsDeleted = true
+			s.Urls[key] = el
 		}
 	}
 

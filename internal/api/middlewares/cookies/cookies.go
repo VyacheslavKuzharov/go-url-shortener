@@ -13,11 +13,12 @@ import (
 	"strings"
 )
 
-const UserData = "userData"
+const Title = "Authorization"
 
 var (
 	ErrValueTooLong = errors.New("cookie value too long")
 	ErrInvalidValue = errors.New("invalid cookie value")
+	ErrTokenBlank   = errors.New("missing token in Authorization header and Cookie")
 )
 
 func Write(w http.ResponseWriter, cookie http.Cookie) error {
@@ -29,38 +30,22 @@ func Write(w http.ResponseWriter, cookie http.Cookie) error {
 		return ErrValueTooLong
 	}
 
-	// здесь этого кода быть не должно
-	// однако тесты ждут хедер:
-	// https://github.com/Yandex-Practicum/go-autotests/blob/main/cmd/shortenertestbeta/iteration14_test.go#L136
-	w.Header().Set("Authorization", cookie.Value)
-
-	// Write the cookie as normal.
+	w.Header().Set(cookie.Name, cookie.Value)
 	http.SetCookie(w, &cookie)
 
 	return nil
 }
 
 func Read(r *http.Request, name string) (string, error) {
-	// здесь этого кода быть не должно
-	// однако тесты ждут хедер:
-	// https://github.com/Yandex-Practicum/go-autotests/blob/main/cmd/shortenertestbeta/iteration14_test.go#L136
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		return "", errors.New("http: named cookie not present")
+	token, err := fetchToken(r, name)
+	if err != nil {
+		return "", err
 	}
-	value, err := base64.URLEncoding.DecodeString(authHeader)
 
-	// Read the cookie as normal.
-	//cookie, err := r.Cookie(name)
-	//if err != nil {
-	//	return "", err
-	//}
-	//value, err := base64.URLEncoding.DecodeString(cookie.Value)
-
+	value, err := base64.URLEncoding.DecodeString(token)
 	if err != nil {
 		return "", ErrInvalidValue
 	}
-
 	// Return the decoded cookie value.
 	return string(value), nil
 }
@@ -130,4 +115,21 @@ func ReadEncrypted(r *http.Request, name string) (string, error) {
 
 	// Return the plaintext cookie value.
 	return value, nil
+}
+
+func fetchToken(r *http.Request, name string) (string, error) {
+	authHeader := r.Header.Get(name)
+	if authHeader != "" {
+		return authHeader, nil
+	}
+
+	cookie, err := r.Cookie(name)
+	if err != nil {
+		return "", err
+	}
+	if cookie.Value == "" {
+		return "", ErrTokenBlank
+	}
+
+	return cookie.Value, nil
 }
